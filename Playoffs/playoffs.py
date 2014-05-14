@@ -34,6 +34,40 @@ def getPlayoffTeams(year):
     return teams_wins
 
 
+def scrapeTeamStatsFromTable(id, query_soup, all_stats, only_raw_values, only_league_ranks):
+    #get list of indices containing stats I care about
+    div= query_soup.find('div', {"class" : "table_container", "id" : id})
+    header= team_and_opp_div.find("thead").findAll('tr')[-1]
+    indices= []
+    not_scale_indices= []
+    for i,elem in enumerate(header.findAll('th')): 
+        if elem['data-stat'] not in statsToIgnore:
+            indices += [i]
+        if elem['data-stat'] in statsToNotScale:
+            not_scale_indices += [i]
+
+    #get stats located in desired indices
+    stat_rows= div.find("tbody").findAll("tr")
+    for row in stats_rows:
+        arraysToAddTo= [all_stats]
+        statline= row.findAll('td')
+        isLgRank= False
+        if statline[0].text.encode("ascii","ignore")=="Lg Rank":
+            arraysToAddTo += [only_league_ranks]
+            isLgRank= True
+        else: 
+            arraysToAddTo += [only_raw_values]
+        for j in indices:
+            for arr in arraysToAddTo:
+                value= float(statline[j].text.encode("ascii","ignore"))
+                scale= 1
+                if j not in not_scale_indices: #meaning j needs scaling
+                    if year==1999 and isLgRank==False: scale= float(82)/float(50)
+                    if year==2012 and isLgRank==False: scale= float(82)/float(66)
+                arr += [value * scale]
+    return (all_stats, only_raw_values, only_league_ranks)
+    
+
 #returns (all_stats, only_raw_values, only_league_ranks) tuple of arrays
 def scrapeTeamStats(team_url, year):
     all_stats= []
@@ -41,68 +75,15 @@ def scrapeTeamStats(team_url, year):
     only_league_ranks= []
     query_soup= grabSiteData("http://www.basketball-reference.com"+team_url)
 
-    #get list of indices containing stats I care about
-    team_and_opp_div= query_soup.find('div', {"class" : "table_container", "id" : "div_team_stats"})
-    team_and_opp_header= team_and_opp_div.find("thead")
-    indices= []
-    not_scale_indices= []
-    for i,elem in enumerate(team_and_opp_header.findAll('th')): 
-        if elem['data-stat'] not in statsToIgnore:
-            indices += [i]
-        if elem['data-stat'] in statsToNotScale:
-            not_scale_indices += [i]
-
-    #get stats located in desired indices
-    team_and_opp_stats= team_and_opp_div.find("tbody").findAll("tr")
-    for row in team_and_opp_stats:
-        arraysToAddTo= [all_stats]
-        stats= row.findAll('td')
-        isLgRank= False
-        if stats[0].text.encode("ascii","ignore")=="Lg Rank":
-            arraysToAddTo += [only_league_ranks]
-            isLgRank= True
-        else: 
-            arraysToAddTo += [only_raw_values]
-        for j in indices:
-            for arr in arraysToAddTo:
-                value= float(stats[j].text.encode("ascii","ignore"))
-                scale= 1
-                if j not in not_scale_indices: #meaning j needs scaling
-                    if year==1999 and isLgRank==False: scale= float(82)/float(50)
-                    if year==2012 and isLgRank==False: scale= float(82)/float(50)
-                arr += [value * scale]
-
-
-    #repeat above for team_misc stats
-    team_misc_div= query_soup.find('div', {"class" : "table_container", "id" : "div_team_misc"})
-    team_misc_header= team_misc_div.find("thead").findAll('tr')[-1] #first tr is an "over-header" to be ignored
-    indices= []
-    not_scale_indices= []
-    for i,elem in enumerate(team_misc_header.findAll('th')): 
-        if elem['data-stat'] not in statsToIgnore:
-            indices += [i]
-        if elem['data-stat'] in statsToNotScale:
-            not_scale_indices += [i]
-
-    team_misc_stats= team_misc_div.find("tbody").findAll("tr")
-    for row in team_misc_stats:
-        arraysToAddTo= [all_stats]
-        stats= row.findAll('td')
-        isLgRank= False
-        if stats[0].text.encode("ascii","ignore")=="Lg Rank":
-            arraysToAddTo += [only_league_ranks]
-            isLgRank= True
-        else: 
-            arraysToAddTo += [only_raw_values]
-        for j in indices:
-            for arr in arraysToAddTo:
-                value= float(stats[j].text.encode("ascii","ignore"))
-                scale= 1
-                if j not in not_scale_indices: #meaning j needs scaling
-                    if year==1999 and isLgRank==False: scale= float(82)/float(50)
-                    if year==2012 and isLgRank==False: scale= float(82)/float(66)
-                arr += [value * scale]
+    #ids of tables I want to scrape from
+    arr= (all_stats, only_raw_values, only_league_ranks)
+    tables_ids= ["div_team_stats", "div_team_misc"]
+    for id in table_ids:
+        arrs= scrapeTeamStatsFromTable("div_team_stats", query_soup, all_stats, only_raw_values, only_league_ranks)
+        (all_stats, only_raw_values, only_league_ranks)= arrs
+    
     return (all_stats, only_raw_values, only_league_ranks) 
+
 
 #statType= 0 for all_states, 1 for only_raw_values, 2 for only_league_ranks
 def createTrainingSets(yearStart, yearEnd, folder, fn_all_stats, fn_raw_stats, fn_lg_ranks):
