@@ -5,7 +5,8 @@ import csv
 import urllib2
 from bs4 import BeautifulSoup
 
-statsToIgnore= ["player","g", "mp", "arena_name", "attendance"]
+#un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
+statsToIgnore= ["player","g", "mp", "arena_name", "attendance", "wins_pyth", "losses_pyth"]
 currTeams= ['/teams/BRK/2014.html', '/teams/IND/2014.html', '/teams/MIA/2014.html', '/teams/WAS/2014.html',
             '/teams/SAS/2014.html', '/teams/LAC/2014.html', '/teams/OKC/2014.html', '/teams/POR/2014.html']
 
@@ -32,7 +33,7 @@ def getPlayoffTeams(year):
     return teams_wins
 
 
-def scrapeTeamStatsFromTable(id, year, query_soup, all_stats, raw_vals, lg_ranks):
+def scrapeTeamStatsFromTable(id, query_soup, all_stats, per_game, lg_ranks):
     #get list of indices containing stats I care about
     div= query_soup.find('div', {"class" : "table_container", "id" : id})
     header= div.find("thead").findAll('tr')[-1]
@@ -42,83 +43,87 @@ def scrapeTeamStatsFromTable(id, year, query_soup, all_stats, raw_vals, lg_ranks
             indices += [i]
 
     #get stats located in desired indices
-    stat_rows= div.find("tbody").findAll("tr")
+    stat_rows= div.findAll("tr")
     for row in stat_rows:
-        arraysToAddTo= [all_stats]
         statline= row.findAll('td')
-        if statline[0].text.encode("ascii","ignore")=="Lg Rank":
-            arraysToAddTo += [lg_ranks]
-        else: 
-            arraysToAddTo += [raw_vals]
-        for j in indices:
-            for arr in arraysToAddTo:
-                value= float(statline[j].text.encode("ascii","ignore").replace("%",""))
-                arr += [value]
-    return (all_stats, raw_vals, lg_ranks)
+        arraysToAddTo= []
+        if len(statline) != 0: #statline is [] for table header rows
+            #kind of janky
+            if statline[0].text.encode("ascii","ignore")=="Lg Rank":
+                arraysToAddTo += [lg_ranks,all_stats]
+            if statline[0].text.encode("ascii","ignore") in ["Team/G", "Opponent/G"]: 
+                arraysToAddTo += [per_game,all_stats]
+            if statline[0].text.encode("ascii","ignore")=="Team" and id=="div_team_misc":
+                arraysToAddTo += [per_game,all_stats]
+            for j in indices:
+                for arr in arraysToAddTo:
+                    value= float(statline[j].text.encode("ascii","ignore").replace("%",""))
+                    arr += [value]
+    return (all_stats, per_game, lg_ranks)
     
 
-#returns (all_stats, raw_vals, lg_ranks) tuple of arrays
+#returns (all_stats, per_game, lg_ranks) tuple of arrays
 def scrapeTeamStats(team_url):
     all_stats= []
-    raw_vals= []
+    per_game= []
     lg_ranks= []
     soup= grabSiteData("http://www.basketball-reference.com"+team_url)
 
     #ids of tables I want to scrape from
-    arr= (all_stats, raw_vals, lg_ranks)
+    arr= (all_stats, per_game, lg_ranks)
     table_ids= ["div_team_stats", "div_team_misc"]
     for id in table_ids:
-        (all_stats, raw_vals, lg_ranks)= scrapeTeamStatsFromTable("div_team_stats", soup, all_stats, raw_vals, lg_ranks)
+        (all_stats, per_game, lg_ranks)= scrapeTeamStatsFromTable(id, soup, all_stats, per_game, lg_ranks)
     
-    return (all_stats, raw_vals, lg_ranks) 
+    return (all_stats, per_game, lg_ranks) 
 
 
-#statType= 0 for all_stats, 1 for raw_vals, 2 for lg_ranks
-def createTrainingSets(yearStart, yearEnd, folder, fn_all_stats, fn_raw_stats, fn_lg_ranks):
+#statType= 0 for all_stats, 1 for per_game, 2 for lg_ranks
+def createTrainingSets(yearStart, yearEnd, folder, fn_all_stats, fn_per_game, fn_lg_ranks):
     #create CSVs and csv_writers
-    asCSV= open(folder+fn_all_stats,'wb')
-    rsCSV= open(folder+fn_raw_stats,'wb')
-    lrCSV= open(folder+fn_lg_ranks,'wb')
+    asCSV= open(folder+fn_all_stats,'wb') #"as" for "all stats"
+    pgCSV= open(folder+fn_per_game,'wb')  #"pg" for "per game"
+    lrCSV= open(folder+fn_lg_ranks,'wb')  #"lr" for "league ranks"
     as_wr = csv.writer(asCSV)
-    rs_wr = csv.writer(rsCSV)
+    pg_wr = csv.writer(pgCSV)
     lr_wr = csv.writer(lrCSV)
 
     #populate CSVs
     for year in range(yearStart, yearEnd+1): 
         playoff_teams= getPlayoffTeams(year)
         for url,wins in playoff_teams.items():
-            arrs= (all_stats,raw_stats,lg_ranks)= scrapeTeamStats(url)
+            arrs= (all_stats,per_game,lg_ranks)= scrapeTeamStats(url)
             for arr in arrs:
                 arr += [url, wins]
             as_wr.writerow(all_stats)
-            rs_wr.writerow(raw_stats)
+            pg_wr.writerow(per_game)
             lr_wr.writerow(lg_ranks)
         print "Done with year", year
 
 
-def createTestSets(year, folder, fn_all_stats, fn_raw_stats, fn_lg_ranks):
+def createTestSets(year, folder, fn_all_stats, fn_per_game, fn_lg_ranks):
     #create CSVs and csv_writers
     asCSV= open(folder+fn_all_stats,'wb')  #"as" for "all stats"
-    rsCSV= open(folder+fn_raw_stats,'wb')  #"rs" for "raw stats"
+    pgCSV= open(folder+fn_per_game,'wb')   #"pg" for "per game"
     lrCSV= open(folder+fn_lg_ranks,'wb')   #"lr" for "league ranks"
     as_wr = csv.writer(asCSV)
-    rs_wr = csv.writer(rsCSV)
+    pg_wr = csv.writer(pgCSV)
     lr_wr = csv.writer(lrCSV)
 
     #populate CSVs
     for teamURL in currTeams:
         data_to_append= [year] #to be appended to end of each attribute vectors
-        arrs= (all_stats,raw_stats,lg_ranks)= scrapeTeamStats(teamURL,year)
+        arrs= (all_stats,per_game,lg_ranks)= scrapeTeamStats(teamURL,year)
         for arr in arrs:
             arr += data_to_append 
         as_wr.writerow(all_stats)
-        rs_wr.writerow(raw_stats)
+        pg_wr.writerow(per_game)
         lr_wr.writerow(lg_ranks)
     print "Done"
 
 if __name__=="__main__":
     start= time.time()
-    createTrainingSets(2011,2011,'/Users/nikhilnathwani/Desktop/','all_stats2011','raw_stats2011','league_ranks2011')
-    #createTestSets(2014, '/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/', 'all_stats2014', 'raw_stats2014', 'lg_ranks2014')
+    createTrainingSets(1980,2013,'/Users/nikhilnathwani/Desktop/','all_stats','per_game','league_ranks')
+    #createTestSets(2014, '/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/', 'all_stats2014', 'per_game2014', 'lg_ranks2014')
     #print getPlayoffTeams(2013)
     print "Time taken:", time.time()-start
