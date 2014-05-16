@@ -6,7 +6,6 @@ import urllib2
 from bs4 import BeautifulSoup
 
 statsToIgnore= ["player","g", "mp", "arena_name", "attendance"]
-statsToNotScale= ["fg_pct", "fg3_pct", "fg2_pct", "ft_pct", "pts_per_g"]
 currTeams= ['/teams/BRK/2014.html', '/teams/IND/2014.html', '/teams/MIA/2014.html', '/teams/WAS/2014.html',
             '/teams/SAS/2014.html', '/teams/LAC/2014.html', '/teams/OKC/2014.html', '/teams/POR/2014.html']
 
@@ -16,7 +15,7 @@ def grabSiteData(url):
     usock.close()
     return BeautifulSoup(data)
 
-#returns array of (playoff_team_url,year,num_wins_in_playoffs)
+#returns dictionary of (playoff_team_url,num_wins_in_playoffs) pairs
 def getPlayoffTeams(year):
     teams_wins= {}
     query_soup= grabSiteData("http://www.basketball-reference.com/playoffs/NBA_"+str(year)+".html")
@@ -24,68 +23,57 @@ def getPlayoffTeams(year):
     for row in playoff_data:
         tds= row.findAll("td")
         p_round= tds[0].text.encode("ascii","ignore")
-        if "First" not in p_round:
-            record_index= p_round.find('(')
-            wins= [int(p_round[record_index+1]), int(p_round[record_index+3])]
-            matchup= [elem["href"].encode("ascii","ignore") for elem in tds[1].findAll("a")][:-1]
-            for i,team in enumerate(matchup):
-                teams_wins[team]= teams_wins.get(team, 0) + wins[i]
-    teams_wins= [(k,year,teams_wins[k]) for k in teams_wins.keys()]
+        #if "First" not in p_round:
+        record_index= p_round.find('(')
+        wins= [int(p_round[record_index+1]), int(p_round[record_index+3])]
+        matchup= [elem["href"].encode("ascii","ignore") for elem in tds[1].findAll("a")][:-1]
+        for i,team in enumerate(matchup):
+            teams_wins[team]= teams_wins.get(team,0) + wins[i]
     return teams_wins
 
 
-def scrapeTeamStatsFromTable(id, query_soup, all_stats, only_raw_values, only_league_ranks):
+def scrapeTeamStatsFromTable(id, year, query_soup, all_stats, raw_vals, lg_ranks):
     #get list of indices containing stats I care about
     div= query_soup.find('div', {"class" : "table_container", "id" : id})
-    header= team_and_opp_div.find("thead").findAll('tr')[-1]
+    header= div.find("thead").findAll('tr')[-1]
     indices= []
-    not_scale_indices= []
     for i,elem in enumerate(header.findAll('th')): 
         if elem['data-stat'] not in statsToIgnore:
             indices += [i]
-        if elem['data-stat'] in statsToNotScale:
-            not_scale_indices += [i]
 
     #get stats located in desired indices
     stat_rows= div.find("tbody").findAll("tr")
-    for row in stats_rows:
+    for row in stat_rows:
         arraysToAddTo= [all_stats]
         statline= row.findAll('td')
-        isLgRank= False
         if statline[0].text.encode("ascii","ignore")=="Lg Rank":
-            arraysToAddTo += [only_league_ranks]
-            isLgRank= True
+            arraysToAddTo += [lg_ranks]
         else: 
-            arraysToAddTo += [only_raw_values]
+            arraysToAddTo += [raw_vals]
         for j in indices:
             for arr in arraysToAddTo:
-                value= float(statline[j].text.encode("ascii","ignore"))
-                scale= 1
-                if j not in not_scale_indices: #meaning j needs scaling
-                    if year==1999 and isLgRank==False: scale= float(82)/float(50)
-                    if year==2012 and isLgRank==False: scale= float(82)/float(66)
-                arr += [value * scale]
-    return (all_stats, only_raw_values, only_league_ranks)
+                value= float(statline[j].text.encode("ascii","ignore").replace("%",""))
+                arr += [value]
+    return (all_stats, raw_vals, lg_ranks)
     
 
-#returns (all_stats, only_raw_values, only_league_ranks) tuple of arrays
-def scrapeTeamStats(team_url, year):
+#returns (all_stats, raw_vals, lg_ranks) tuple of arrays
+def scrapeTeamStats(team_url):
     all_stats= []
-    only_raw_values= []
-    only_league_ranks= []
-    query_soup= grabSiteData("http://www.basketball-reference.com"+team_url)
+    raw_vals= []
+    lg_ranks= []
+    soup= grabSiteData("http://www.basketball-reference.com"+team_url)
 
     #ids of tables I want to scrape from
-    arr= (all_stats, only_raw_values, only_league_ranks)
-    tables_ids= ["div_team_stats", "div_team_misc"]
+    arr= (all_stats, raw_vals, lg_ranks)
+    table_ids= ["div_team_stats", "div_team_misc"]
     for id in table_ids:
-        arrs= scrapeTeamStatsFromTable("div_team_stats", query_soup, all_stats, only_raw_values, only_league_ranks)
-        (all_stats, only_raw_values, only_league_ranks)= arrs
+        (all_stats, raw_vals, lg_ranks)= scrapeTeamStatsFromTable("div_team_stats", soup, all_stats, raw_vals, lg_ranks)
     
-    return (all_stats, only_raw_values, only_league_ranks) 
+    return (all_stats, raw_vals, lg_ranks) 
 
 
-#statType= 0 for all_states, 1 for only_raw_values, 2 for only_league_ranks
+#statType= 0 for all_stats, 1 for raw_vals, 2 for lg_ranks
 def createTrainingSets(yearStart, yearEnd, folder, fn_all_stats, fn_raw_stats, fn_lg_ranks):
     #create CSVs and csv_writers
     asCSV= open(folder+fn_all_stats,'wb')
@@ -96,20 +84,16 @@ def createTrainingSets(yearStart, yearEnd, folder, fn_all_stats, fn_raw_stats, f
     lr_wr = csv.writer(lrCSV)
 
     #populate CSVs
-    for i in range(yearStart, yearEnd+1): 
-        playoff_teams= getPlayoffTeams(i)
-        for team in playoff_teams:
-            url= team[0]
-            year= team[1]
-            wins= team[2]
-            data_to_append= [year, wins]
-            arrs= (all_stats,raw_stats,lg_ranks)= scrapeTeamStats(url,year)
+    for year in range(yearStart, yearEnd+1): 
+        playoff_teams= getPlayoffTeams(year)
+        for url,wins in playoff_teams.items():
+            arrs= (all_stats,raw_stats,lg_ranks)= scrapeTeamStats(url)
             for arr in arrs:
-                arr += data_to_append 
+                arr += [url, wins]
             as_wr.writerow(all_stats)
             rs_wr.writerow(raw_stats)
             lr_wr.writerow(lg_ranks)
-        print "Done with year", i
+        print "Done with year", year
 
 
 def createTestSets(year, folder, fn_all_stats, fn_raw_stats, fn_lg_ranks):
@@ -134,6 +118,7 @@ def createTestSets(year, folder, fn_all_stats, fn_raw_stats, fn_lg_ranks):
 
 if __name__=="__main__":
     start= time.time()
-    #createTrainingSets(2012,2012,'/Users/nikhilnathwani/Desktop/','all_stats2012','raw_stats2012','league_ranks2012')
-    createTestSets(2014, '/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/', 'all_stats2014', 'raw_stats2014', 'lg_ranks2014')
+    createTrainingSets(2011,2011,'/Users/nikhilnathwani/Desktop/','all_stats2011','raw_stats2011','league_ranks2011')
+    #createTestSets(2014, '/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/', 'all_stats2014', 'raw_stats2014', 'lg_ranks2014')
+    #print getPlayoffTeams(2013)
     print "Time taken:", time.time()-start
