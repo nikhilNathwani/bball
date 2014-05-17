@@ -2,11 +2,12 @@ import sys
 import math
 
 class Team:
-    def __init__(self,u,a,l):
+    def __init__(self,u,a,l,s):
         self.url= u
         self.attr= a
         self.label= l
-        
+        self.sim= s
+
 #ignores last entry b/c that's assumed to be the label
 def dist(a,b):
     diffs= []
@@ -14,13 +15,19 @@ def dist(a,b):
         diffs += [math.pow(a[i]-b[i],2)]
     return math.sqrt(sum(diffs))
 
-def csvToLists(csv):
+#type is train or test data
+def csvToLists(csv, data_type):
     datafile = open(csv, 'r')
     data = []
     for row in datafile:
         stats= [float(elem) for elem in row.strip().split(',')]
-        print stats
-        data.append(stats)
+        if data_type=="train":
+            print stats, "ooga", stats[-2], stats[-1]
+            data.append(Team(stats[-2], stats[:-2]), stats[-1], sys.maxint)
+        elif data_type=="test":
+            data.append(Team(stats[-1], stats[:-1]), "", sys.maxint)
+        else:
+            raise Exception("data_type must be \"train\" or \"test\"!")
     return data
 
 #returns an array of the form:
@@ -32,31 +39,34 @@ def getNearestNeighbors(k, trainSet, testPoint):
     distBound= -sys.maxint-1
     furthestIndex= 0
     for example in trainSet:
-        label= example[-1]
-        d= dist(example,testPoint)
+        example.sim= dist(example,testPoint)
         #if there aren't k neighbors yet, add one
         if(len(kClosest) < k):
-            kClosest += [[label,d]]
-            if(distBound < d):
-                distBound= d
+            kClosest += [example]
+            if(distBound < example.sim):
+                distBound= example.sim
                 furthestIndex= len(kClosest)-1
         #else only add if it is closer than the current furthest neighbor N,
         #and replace N with it
         else:
-            if(d < distBound):
-                kClosest[furthestIndex]= [label,d]
-                distBound= d
+            if(example.sim < distBound):
+                kClosest[furthestIndex]= example
+                distBound= example.sim
                 for j,neighbor in enumerate(kClosest):
-                    if(neighbor[1] >= distBound):
-                        distBound= neighbor[1]
+                    if(neighbor.sim >= distBound):
+                        distBound= neighbor.sim
                         furthestIndex= j
     return kClosest
 
+def teamSort(teams):
+    return teams
+
+##IN THIS AND WEIGHTED CASE, NEED TO DEFINE SORT FOR ARRAY OF TEAMS
 #no weighting, just majority vote
 def kNN(k,trainSet,testPoint):
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
-    kClosest.sort()
-    mode= kClosest[0][0] #guaranteed to exist (so no array bounds issue)
+    kClosest= teamSort(kClosest)
+    mode= kClosest[0].label #guaranteed to exist (so no array bounds issue)
     modeFreq= 0
     currMode= kClosest[0][0]
     currModeFreq= 0
@@ -75,7 +85,7 @@ def kNN(k,trainSet,testPoint):
 def weightedKNN(k,trainSet,testPoint):
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
     #majority vote, can be made more efficient
-    kClosest.sort()
+    kClosest= teamSort(kClosest)
     mode= kClosest[0][0] #guaranteed to exist (so no array bounds issue)
     modeFreq= 0
     currMode= kClosest[0][0]
