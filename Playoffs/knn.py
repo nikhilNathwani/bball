@@ -11,6 +11,7 @@ class Team:
 
 #ignores last entry b/c that's assumed to be the label
 def dist(a,b):
+    print "DIST", a,b
     arr_a= np.array(a.attr)
     arr_b= np.array(b.attr)
     return np.linalg.norm(arr_a-arr_b)
@@ -23,9 +24,9 @@ def csvToLists(csv, data_type):
         stats= [float(elem) for elem in row.strip().split(',')]
         if data_type=="train":
             print stats, "ooga", stats[-2], stats[-1]
-            data.append(Team(stats[-2], stats[:-2]), stats[-1], sys.maxint)
+            data.append(Team(stats[-2], stats[:-2], stats[-1], sys.maxint))
         elif data_type=="test":
-            data.append(Team(stats[-1], stats[:-1]), "", sys.maxint)
+            data.append(Team(stats[-1], stats[:-1], "", sys.maxint))
         else:
             raise Exception("data_type must be \"train\" or \"test\"!")
     return data
@@ -68,16 +69,16 @@ def kNN(k,trainSet,testPoint):
     kClosest= teamSort(kClosest)
     mode= kClosest[0].label #guaranteed to exist (so no array bounds issue)
     modeFreq= 0
-    currMode= kClosest[0][0]
+    currMode= kClosest[0].label
     currModeFreq= 0
     for neighbor in kClosest:
-        if(neighbor[0] == currMode):
+        if(neighbor.label == currMode):
             currModeFreq += 1
             if(currModeFreq > modeFreq):
                 modeFreq= currModeFreq
                 mode= currMode
         else:
-            currMode= neighbor[0]
+            currMode= neighbor.label
             currModeFreq= 1
     return mode
 
@@ -86,20 +87,20 @@ def weightedKNN(k,trainSet,testPoint):
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
     #majority vote, can be made more efficient
     kClosest= teamSort(kClosest)
-    mode= kClosest[0][0] #guaranteed to exist (so no array bounds issue)
+    mode= kClosest[0].label #guaranteed to exist (so no array bounds issue)
     modeFreq= 0
-    currMode= kClosest[0][0]
+    currMode= kClosest[0].label
     currModeFreq= 0
     for neighbor in kClosest:
-        if(neighbor[0] == currMode):
-            currModeFreq += 1/neighbor[1] #when neighbor[1], currModeFreq= infinity
+        if(neighbor.label == currMode):
+            currModeFreq += (1/neighbor.label if neighbor.label!=0 else sys.maxint) #when neighbor[1], currModeFreq= infinity
             if(currModeFreq > modeFreq):
                 modeFreq= currModeFreq
                 mode= currMode
         else:
-            currMode= neighbor[0]
-            currModeFreq= neighbor[1]
+            currMode= neighbor.label
+            currModeFreq= (1/neighbor.label if neighbor.label!=0 else sys.maxint)
     return mode
 
 if __name__=="__main__":
-    print kNN(5,csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training_normalized/all_stats_normalized.csv"),csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/test_normalized/all_stats2014_normalized.csv")[0])
+    print weightedKNN(5,csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training_normalized/all_stats_normalized.csv", "train"),csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/test_normalized/all_stats2014_normalized.csv", "test")[0])
