@@ -1,5 +1,6 @@
 import sys
 import math
+import numpy as np
 
 class Team:
     def __init__(self,u,a,l,s):
@@ -10,10 +11,9 @@ class Team:
 
 #ignores last entry b/c that's assumed to be the label
 def dist(a,b):
-    diffs= []
-    for i in range(len(a)-1):
-        diffs += [math.pow(a[i]-b[i],2)]
-    return math.sqrt(sum(diffs))
+    arr_a= np.array(a.attr)
+    arr_b= np.array(b.attr)
+    return np.linalg.norm(arr_a-arr_b)
 
 #type is train or test data
 def csvToLists(csv, data_type):
@@ -59,7 +59,7 @@ def getNearestNeighbors(k, trainSet, testPoint):
     return kClosest
 
 def teamSort(teams):
-    return teams
+    return sorted(teams, key=lambda team: team.sim)
 
 ##IN THIS AND WEIGHTED CASE, NEED TO DEFINE SORT FOR ARRAY OF TEAMS
 #no weighting, just majority vote
