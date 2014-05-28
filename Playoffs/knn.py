@@ -71,6 +71,7 @@ def kNN(k,trainSet,testPoint):
     currMode= kClosest[0].label
     currModeFreq= 0
     for neighbor in kClosest:
+        print neighbor.url, neighbor.label, neighbor.sim
         if(neighbor.label == currMode):
             currModeFreq += 1
             if(currModeFreq > modeFreq):
