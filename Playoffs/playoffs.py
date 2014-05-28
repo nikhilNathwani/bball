@@ -8,9 +8,9 @@ from bs4 import BeautifulSoup
 #un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
 statsToIgnore= ["player","g", "mp", "arena_name", "attendance", "wins_pyth", "losses_pyth"]
 currTeams= ['/teams/BRK/2014.html', '/teams/IND/2014.html', '/teams/MIA/2014.html', '/teams/WAS/2014.html',
-            '/teams/SAS/2014.html', '/teams/LAC/2014.html', '/teams/OKC/2014.html', '/teams/POR/2014.html']#,
-            #'/teams/TOR/2014.html', '/teams/ATL/2014.html', '/teams/CHA/2014.html', '/teams/CHI/2014.html',
-            #'/teams/DAL/2014.html', '/teams/GSW/2014.html', '/teams/MEM/2014.html', '/teams/HOU/2014.html']
+            '/teams/SAS/2014.html', '/teams/LAC/2014.html', '/teams/OKC/2014.html', '/teams/POR/2014.html',
+            '/teams/TOR/2014.html', '/teams/ATL/2014.html', '/teams/CHA/2014.html', '/teams/CHI/2014.html',
+            '/teams/DAL/2014.html', '/teams/GSW/2014.html', '/teams/MEM/2014.html', '/teams/HOU/2014.html']
 
 def grabSiteData(url):
     usock= urllib2.urlopen(url)
@@ -20,7 +20,7 @@ def grabSiteData(url):
 
 #returns dictionary of (playoff_team_url,num_wins_in_playoffs) pairs
 def getPlayoffTeams(year):
-    teams_wins= {}
+    teams_wins= {} #counts number of series each team won in a given playoff year
     query_soup= grabSiteData("http://www.basketball-reference.com/playoffs/NBA_"+str(year)+".html")
     playoff_data= query_soup.find('div', {"id" : "all_playoffs"}).findAll('tr', {"class" : "mobile_text"})
     for row in playoff_data:
@@ -31,7 +31,8 @@ def getPlayoffTeams(year):
         wins= [int(p_round[record_index+1]), int(p_round[record_index+3])]
         matchup= [elem["href"].encode("ascii","ignore") for elem in tds[1].findAll("a")][:-1]
         for i,team in enumerate(matchup):
-            teams_wins[team]= teams_wins.get(team,0) + wins[i]
+            #add 1 to "team" if that team won the series, 0 otherwise
+            teams_wins[team]= teams_wins.get(team,0) + (wins[i] > wins[not i])
     return teams_wins
 
 
@@ -124,7 +125,7 @@ def createTestSets(folder, fn_all_stats, fn_per_game, fn_lg_ranks):
 
 if __name__=="__main__":
     start= time.time()
-    #createTrainingSets(1980,2013,'/Users/nikhilnathwani/Desktop/','all_stats','per_game','league_ranks')
-    createTestSets('/Users/nikhilnathwani/Desktop/', 'all_stats2014', 'per_game2014', 'lg_ranks2014')
+    createTrainingSets(1984,2013,'/Users/nikhilnathwani/Desktop/','all_stats','per_game','league_ranks')
+    #createTestSets('/Users/nikhilnathwani/Desktop/', 'all_stats2014', 'per_game2014', 'lg_ranks2014')
     #print getPlayoffTeams(2013)
     print "Time taken:", time.time()-start
