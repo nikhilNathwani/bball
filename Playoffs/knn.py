@@ -59,7 +59,7 @@ def getNearestNeighbors(k, trainSet, testPoint):
     return kClosest
 
 def teamSort(teams):
-    return sorted(teams, key=lambda team: team.sim)
+    return sorted(teams, key=lambda team: team.label)
 
 ##IN THIS AND WEIGHTED CASE, NEED TO DEFINE SORT FOR ARRAY OF TEAMS
 #no weighting, just majority vote
@@ -86,7 +86,6 @@ def kNN(k,trainSet,testPoint):
 def weightedKNN(k,trainSet,testPoint):
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
     #majority vote, can be made more efficient
-    kClosest= teamSort(kClosest)
     weighted_total= 0 #guaranteed to exist (so no array bounds issue)
     sum_of_weights= 0
     for neighbor in kClosest:
@@ -103,5 +102,5 @@ if __name__=="__main__":
     for team in test:
         print "\n-------------------------"
         print k, "Closest neighbors of:", team.url
-        print weightedKNN(k, train, team)
+        print kNN(k, train, team)
         print "-------------------------\n"

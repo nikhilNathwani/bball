@@ -8,9 +8,9 @@ from bs4 import BeautifulSoup
 #un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
 statsToIgnore= ["player","g", "mp", "arena_name", "attendance", "wins_pyth", "losses_pyth"]
 currTeams= ['/teams/BRK/2014.html', '/teams/IND/2014.html', '/teams/MIA/2014.html', '/teams/WAS/2014.html',
-            '/teams/SAS/2014.html', '/teams/LAC/2014.html', '/teams/OKC/2014.html', '/teams/POR/2014.html']#,
-            #'/teams/TOR/2014.html', '/teams/ATL/2014.html', '/teams/CHA/2014.html', '/teams/CHI/2014.html',
-            #'/teams/DAL/2014.html', '/teams/GSW/2014.html', '/teams/MEM/2014.html', '/teams/HOU/2014.html']
+            '/teams/SAS/2014.html', '/teams/LAC/2014.html', '/teams/OKC/2014.html', '/teams/POR/2014.html',
+            '/teams/TOR/2014.html', '/teams/ATL/2014.html', '/teams/CHA/2014.html', '/teams/CHI/2014.html',
+            '/teams/DAL/2014.html', '/teams/GSW/2014.html', '/teams/MEM/2014.html', '/teams/HOU/2014.html']
 
 def grabSiteData(url):
     usock= urllib2.urlopen(url)
