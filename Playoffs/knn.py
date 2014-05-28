@@ -85,6 +85,8 @@ def kNN(k,trainSet,testPoint):
 #uses 1/similarity_score for weight, value of infinity if sim_score=0
 def weightedKNN(k,trainSet,testPoint):
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
+    #sorting for printing purposes
+    kClosest= sorted(kClosest, key=lambda team: team.sim) 
     #majority vote, can be made more efficient
     weighted_total= 0 #guaranteed to exist (so no array bounds issue)
     sum_of_weights= 0
@@ -96,11 +98,13 @@ def weightedKNN(k,trainSet,testPoint):
     return weighted_total/sum_of_weights
 
 if __name__=="__main__":
-    k= 10
-    train= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/raw/all_stats", "train")
-    test= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/raw/all_stats2014", "test")
+    if len(sys.argv)<=1:
+        raise Exception("Must provide k value!")
+    k= int(sys.argv[1])
+    train= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/raw/per_game", "train")
+    test= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/raw/per_game2014", "test")
     for team in test:
         print "\n-------------------------"
         print k, "Closest neighbors of:", team.url
-        print kNN(k, train, team)
+        print weightedKNN(k, train, team)
         print "-------------------------\n"
