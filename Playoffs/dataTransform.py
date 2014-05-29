@@ -2,9 +2,45 @@ import string
 import time
 import csv
 
-all_stats_trainDataScales=[]
-raw_stats_trainDataScales=[]
-league_ranks_trainDataScales=[]
+class Bounds:
+    def __init__(self,maximum,minimum):
+        self.max= maximum
+        self.min= minimum
+        self.diff= maximum-minimum
+
+max_mins= {}
+
+#saves max and min values for each attributed in the max_mins dict, 
+#whose keys are indices of the attribute vector. The last 2 columns,
+#the url and the label, are skipped over.
+def setTrainMaxMins(old_data_fn):
+	global max_mins
+	max_mins= {}
+	rows= []
+	with open(old_data_fn) as f:
+		for line in f:
+			arr= [[float(elem) for elem in line.split(',')[:-2]]]
+			rows += arr
+	cols= [list(attr) for attr in zip(*rows)]
+	for ind,col in enumerate(cols):
+		max_mins[ind]= Bounds(max(col),min(col))
+
+#must be preceded by a call to setTrainMaxMins
+def standardizeMaxMin(old_data_fn, new_data_fn):
+	rows= []
+	with open(old_data_fn) as f:
+		for line in f:
+			arr= [line.split(',')]
+			rows += arr 
+	for row in rows:
+		for i,attr in max_mins.iteritems():
+			row[i]= (float(row[i])-attr.min)/(attr.diff)
+		row[-1]= float(row[-1]) #convert label from string to float
+	normCSV= open(new_data_fn,'wb')
+	norm_wr = csv.writer(normCSV)
+	for row in rows:
+		norm_wr.writerow(row)
+
 
 #normalize entries of arr so that they sum to X
 def normalize(arr, X):
@@ -18,7 +54,7 @@ def normalizeGivenScales(arr,scaleArray):
 
 #normalize columns of CSV so that they sum to X
 #-old_data_fn is the name of the CSV to be normalized
-#-new_data_fn is the name of the CSV into which the normalized data should be placed. 
+#-new_data_fn is the name of the CSV into which ,the normalized data should be placed. 
 #   If equal to old_data_fn, then old_data_fn is overwritted
 #-columnExceps is a list of column indices that shouldn't be normalized
 #-scaleArray is either all_stats_trainDataScales, raw_stats_trainDataScales, 
@@ -70,19 +106,16 @@ def normalizeTestPoints(old_data_fn,new_data_fn,scaleArray):
 
 if __name__=="__main__":
 	#transforming training data
-	oldFolder= "/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/"
-	normFolder= "/Users/nikhilnathwani/Desktop/BBall/Playoffs/training_normalized/"
-	old_fns= {"all_stats":all_stats_trainDataScales, 
-			  "raw_stats":raw_stats_trainDataScales, 
-			  "league_ranks":league_ranks_trainDataScales}
-	for fn in old_fns.keys():
-		normalizeColumnsToX(oldFolder+fn,normFolder+fn+"_normalized",100,[-1], old_fns[fn])
+	start=time.time()
+	fn= '/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/raw/league_ranks'
+	setTrainMaxMins(fn)
+	standardizeMaxMin(fn,'/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/norm/league_ranks_norm')
 
-	#transforming test data
-	oldFolder= "/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/"
-	normFolder= "/Users/nikhilnathwani/Desktop/BBall/Playoffs/test_normalized/"
-	old_fns= {"all_stats2014":all_stats_trainDataScales, 
-		      "raw_stats2014":raw_stats_trainDataScales, 
-		      "league_ranks2014":league_ranks_trainDataScales}
-	for fn in old_fns:
-		normalizeTestPoints(oldFolder+fn,normFolder+fn+"_normalized", old_fns[fn])
+	fn= '/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/raw/all_stats'
+	setTrainMaxMins(fn)
+	standardizeMaxMin(fn,'/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/norm/all_stats_norm')
+
+	fn= '/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/raw/per_game'
+	setTrainMaxMins(fn)
+	standardizeMaxMin(fn,'/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/norm/per_game_norm')	
+	print "Time taken:", time.time()-start
