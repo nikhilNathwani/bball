@@ -30,37 +30,46 @@ def transpose(lst):
 #-old_data_fn is the name of the CSV to be normalized
 #-new_data_fn is the name of the CSV into which ,the normalized data should be placed. 
 #   If equal to old_data_fn, then old_data_fn is overwritten
-def standardizeRescale(old_data_fn, new_data_fn):
+#-file_base is all_stats, per_game, or league_ranks
+def standardizeRescale(old_data_fn, new_data_fn, file_base):
 	mins= []
 	diffs= []
+	scale_fn= 'scales/rescale/'+file_base+'_scales'
+	if not (offset-1):
+		[mins,diffs]= csvToLists(scale_fn)
+		mins= [float(x) for x in mins]
+		diffs= [float(x) for x in diffs]
 	rows= csvToLists(old_data_fn)
 	cols= transpose(rows)
 	for i in range(len(cols)-offset): #The last 2 columns, the url and the label, are skipped over.
-		data=[float(x) for x in cols[i]]
-		mins += [min(data)]
-		diffs += [max(data)-min(data)]
-		cols[i]= [(float(elem)-mins[-1])/diffs[-1] for elem in cols[i]]
+		if offset:
+			data=[float(x) for x in cols[i]]
+			mins += [float(min(data))]
+			diffs += [float(max(data))-float(min(data))]
+		cols[i]= [(float(elem)-mins[i])/diffs[i] for elem in cols[i]]
 	cols[1-offset]= [float(x) for x in cols[1-offset]]
 	listsToCSV(transpose(cols),new_data_fn)
-	if offset:
-		fn= old_data_fn[old_data_fn.rfind('/')+1:]
-		listsToCSV([mins,diffs],'scales/rescale/'+fn+'_scales')
+	if (offset-1):
+		listsToCSV([mins,diffs],scale_fn)
 
 
-def standardizeNorm(old_data_fn, new_data_fn):
+def standardizeNorm(old_data_fn, new_data_fn, file_base):
 	norms=[]
+	scale_fn= 'scales/norm/'+file_base+'_scales'
+	if not (offset-1):
+		norms= csvToLists(scale_fn)[0]
+		norms= [float(x) for x in norms]
 	rows= csvToLists(old_data_fn)
 	cols= transpose(rows)
 	for i in range(len(cols)-offset):
-		data= [float(elem) for elem in cols[i]]
-		norm= np.linalg.norm(data)
-		norms += [norm]
-		cols[i]= [float(elem)/norm for elem in cols[i]]
+		if offset:
+			data= [float(elem) for elem in cols[i]]
+			norms += [np.linalg.norm(data)]
+		cols[i]= [float(elem)/norms[i] for elem in cols[i]]
 	cols[1-offset]= [float(x) for x in cols[1-offset]]
 	listsToCSV(transpose(cols),new_data_fn)
-	if offset:
-		fn= old_data_fn[old_data_fn.rfind('/')+1:]
-		listsToCSV([norms],'scales/norm/'+fn+'_scales')
+	if (offset-1):
+		listsToCSV([norms],'scales/norm/'+file_base+'_scales')
 
 #input 1 if training, 0 if test
 if __name__=="__main__":
@@ -70,6 +79,6 @@ if __name__=="__main__":
 	data_type= "training" if int(sys.argv[1]) else "test"
 	start=time.time()
 	for name in ['all_stats', 'per_game', 'league_ranks']:
-		fn= '/Users/nikhilnathwani/Desktop/BBall/Playoffs/'+data_type+'/raw/'+name
-		standardizeRescale(fn,'/Users/nikhilnathwani/Desktop/BBall/Playoffs/'+data_type+'/rescale/'+name+'_rescale')
+		fn= data_type+'/raw/'+name+'2014'
+		standardizeNorm(fn,data_type+'/norm/'+name+'2014_norm', name)
 	print "Time taken:", time.time()-start
