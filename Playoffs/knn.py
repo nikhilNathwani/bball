@@ -1,33 +1,13 @@
 import sys
 import math
 import numpy as np
-
-class Team:
-    def __init__(self,u,a,l,s):
-        self.url= u
-        self.attr= a
-        self.label= l
-        self.sim= s
+import playoffs
 
 #ignores last entry b/c that's assumed to be the label
 def dist(a,b):
     arr_a= np.array(a.attr)
     arr_b= np.array(b.attr)
     return np.linalg.norm(arr_a-arr_b)
-
-#type is train or test data
-def csvToLists(csv, data_type):
-    datafile = open(csv, 'r')
-    data = []
-    for row in datafile:
-        stats= [elem for elem in row.strip().split(',')]
-        if data_type=="train":
-            data.append(Team(stats[-2], [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint))
-        elif data_type=="test":
-            data.append(Team(stats[-1], [float(elem) for elem in stats[:-1]], "", sys.maxint))
-        else:
-            raise Exception("data_type must be \"train\" or \"test\"!")
-    return data
 
 #returns an array of the form:
 #[[neighbor_1_label, similarity score], ..., [neighbor_k_label, similarity score]]
@@ -101,8 +81,8 @@ if __name__=="__main__":
     if len(sys.argv)<=1:
         raise Exception("Must provide k value!")
     k= int(sys.argv[1])
-    train= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/raw/per_game", "train")
-    test= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/raw/per_game2014", "test")
+    train= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/rescale/league_ranks_rescale", "train")
+    test= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/rescale/league_ranks2014_rescale", "test")
     for team in test:
         print "\n-------------------------"
         print k, "Closest neighbors of:", team.url

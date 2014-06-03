@@ -12,6 +12,33 @@ currTeams= ['/teams/BRK/2014.html', '/teams/IND/2014.html', '/teams/MIA/2014.htm
             '/teams/TOR/2014.html', '/teams/ATL/2014.html', '/teams/CHA/2014.html', '/teams/CHI/2014.html',
             '/teams/DAL/2014.html', '/teams/GSW/2014.html', '/teams/MEM/2014.html', '/teams/HOU/2014.html']
 
+class Team:
+    def __init__(self,u,a,l,s,c):
+        self.url= u
+        self.attr= a
+        self.label= l
+        self.sim= s
+        self.conference= c
+
+class PlayoffTree:
+    def __init__(self):
+        self.west= []
+        self.east= []
+
+#type is train or test data
+def csvToLists(csv, data_type):
+    datafile = open(csv, 'r')
+    data = []
+    for row in datafile:
+        stats= [elem for elem in row.strip().split(',')]
+        if data_type=="train":
+            data.append(Team(stats[-2], [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint))
+        elif data_type=="test":
+            data.append(Team(stats[-1], [float(elem) for elem in stats[:-1]], "", sys.maxint))
+        else:
+            raise Exception("data_type must be \"train\" or \"test\"!")
+    return data
+
 def grabSiteData(url):
     usock= urllib2.urlopen(url)
     data= usock.read()
@@ -123,9 +150,28 @@ def createTestSets(folder, fn_all_stats, fn_per_game, fn_lg_ranks):
         lr_wr.writerow(lg_ranks)
     print "Done"
 
+def getPlayoffStandings(year):
+    query_soup= grabSiteData("http://www.basketball-reference.com/leagues/NBA_"+str(year)+".html")
+    confs= {"east":[0]*8,"west":[0]*8}
+    for conf in confs:
+        standings_div= query_soup.find('div', {"id" : "div_"+conf[0].upper()+"_standings"})
+        teams= standings_div.findAll('td', {"align" : "left"})
+        for team in teams:
+            url= str(team.find('a')['href'])
+            rank= int(team.find('span').text[1:-1])
+            if rank<9:
+                confs[conf][rank-1]= [url]
+        csv_file= open("standings/"+conf+"/"+str(year),'wb')
+        wr= csv.writer(csv_file)
+        for url in confs[conf]:
+            print url
+            wr.writerow(url)
+
 if __name__=="__main__":
     start= time.time()
-    createTrainingSets(1984,2013,'/Users/nikhilnathwani/Desktop/','all_stats','per_game','league_ranks')
+    #for year in range(1984,2014):
+    getPlayoffStandings(2014)
+    #createTrainingSets(1984,2013,'/Users/nikhilnathwani/Desktop/','all_stats','per_game','league_ranks')
     #createTestSets('/Users/nikhilnathwani/Desktop/', 'all_stats2014', 'per_game2014', 'lg_ranks2014')
     #print getPlayoffTeams(2013)
     print "Time taken:", time.time()-start
