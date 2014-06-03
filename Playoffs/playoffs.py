@@ -3,6 +3,7 @@ import string
 import time
 import csv
 import urllib2
+import sys
 from bs4 import BeautifulSoup
 
 #un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
@@ -11,33 +12,6 @@ currTeams= ['/teams/BRK/2014.html', '/teams/IND/2014.html', '/teams/MIA/2014.htm
             '/teams/SAS/2014.html', '/teams/LAC/2014.html', '/teams/OKC/2014.html', '/teams/POR/2014.html',
             '/teams/TOR/2014.html', '/teams/ATL/2014.html', '/teams/CHA/2014.html', '/teams/CHI/2014.html',
             '/teams/DAL/2014.html', '/teams/GSW/2014.html', '/teams/MEM/2014.html', '/teams/HOU/2014.html']
-
-class Team:
-    def __init__(self,u,a,l,s,c):
-        self.url= u
-        self.attr= a
-        self.label= l
-        self.sim= s
-        self.conference= c
-
-class PlayoffTree:
-    def __init__(self):
-        self.west= []
-        self.east= []
-
-#type is train or test data
-def csvToLists(csv, data_type):
-    datafile = open(csv, 'r')
-    data = []
-    for row in datafile:
-        stats= [elem for elem in row.strip().split(',')]
-        if data_type=="train":
-            data.append(Team(stats[-2], [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint))
-        elif data_type=="test":
-            data.append(Team(stats[-1], [float(elem) for elem in stats[:-1]], "", sys.maxint))
-        else:
-            raise Exception("data_type must be \"train\" or \"test\"!")
-    return data
 
 def grabSiteData(url):
     usock= urllib2.urlopen(url)
@@ -167,10 +141,11 @@ def getPlayoffStandings(year):
             print url
             wr.writerow(url)
 
+def
+
 if __name__=="__main__":
     start= time.time()
     #for year in range(1984,2014):
-    getPlayoffStandings(2014)
     #createTrainingSets(1984,2013,'/Users/nikhilnathwani/Desktop/','all_stats','per_game','league_ranks')
     #createTestSets('/Users/nikhilnathwani/Desktop/', 'all_stats2014', 'per_game2014', 'lg_ranks2014')
     #print getPlayoffTeams(2013)

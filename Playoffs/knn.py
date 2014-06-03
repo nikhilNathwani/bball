@@ -1,7 +1,33 @@
 import sys
 import math
 import numpy as np
-import playoffs
+#import playoffs
+
+class Team:
+    def __init__(self,u,a,l,s):
+        self.url= u
+        self.attr= a
+        self.true_label= l
+        self.predicted_label= 0
+        self.sim= s
+
+class PlayoffTree:
+    def __init__(self):
+        self.standings= {"east":[], "west":[]}
+
+#type is train or test data
+def csvToLists(csv, data_type):
+    datafile = open(csv, 'r')
+    data = []
+    for row in datafile:
+        stats= [elem for elem in row.strip().split(',')]
+        if data_type=="train":
+            data.append(Team(stats[-2], [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint))
+        elif data_type=="test":
+            data.append(Team(stats[-1], [float(elem) for elem in stats[:-1]], "", sys.maxint))
+        else:
+            raise Exception("data_type must be \"train\" or \"test\"!")
+    return data
 
 #ignores last entry b/c that's assumed to be the label
 def dist(a,b):
@@ -39,26 +65,26 @@ def getNearestNeighbors(k, trainSet, testPoint):
     return kClosest
 
 def teamSort(teams):
-    return sorted(teams, key=lambda team: team.label)
+    return sorted(teams, key=lambda team: team.true_label)
 
 ##IN THIS AND WEIGHTED CASE, NEED TO DEFINE SORT FOR ARRAY OF TEAMS
 #no weighting, just majority vote
 def kNN(k,trainSet,testPoint):
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
     kClosest= teamSort(kClosest)
-    mode= kClosest[0].label #guaranteed to exist (so no array bounds issue)
+    mode= kClosest[0].true_label #guaranteed to exist (so no array bounds issue)
     modeFreq= 0
-    currMode= kClosest[0].label
+    currMode= kClosest[0].true_label
     currModeFreq= 0
     for neighbor in kClosest:
-        print neighbor.url, neighbor.label, neighbor.sim
-        if(neighbor.label == currMode):
+        print neighbor.url, neighbor.true_label, neighbor.sim
+        if(neighbor.true_label == currMode):
             currModeFreq += 1
             if(currModeFreq > modeFreq):
                 modeFreq= currModeFreq
                 mode= currMode
         else:
-            currMode= neighbor.label
+            currMode= neighbor.true_label
             currModeFreq= 1
     return mode
 
@@ -72,10 +98,25 @@ def weightedKNN(k,trainSet,testPoint):
     sum_of_weights= 0
     for neighbor in kClosest:
         weight= (1/neighbor.sim if neighbor.sim!=0 else sys.maxint/20)
-        print neighbor.url, neighbor.label, neighbor.sim
+        print neighbor.url, neighbor.true_label, neighbor.sim
         sum_of_weights += weight
-        weighted_total += weight * neighbor.label
+        weighted_total += weight * neighbor.true_label
+    testPoint.true_label= weighted_total/sum_of_weights
     return weighted_total/sum_of_weights
+
+def setPlayoffTree(year, teams):
+    confs= ["east","west"]
+    team_urls= {}
+    pt= PlayoffTree()
+    for team in teams:
+        team_urls[team.url]= team
+    for conf in confs:
+        standings_file = open("standings/"+conf+"/"+str(year), 'r')
+        teams= []
+        for row in standings_file:
+            teams += [str(row).strip()]
+        pt.standings[conf]= [team_urls[t] for t in teams]
+    return pt
 
 if __name__=="__main__":
     if len(sys.argv)<=1:
@@ -88,3 +129,4 @@ if __name__=="__main__":
         print k, "Closest neighbors of:", team.url
         print weightedKNN(k, train, team)
         print "-------------------------\n"
+    pt= setPlayoffTree(2014, test)
