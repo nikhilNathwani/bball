@@ -15,16 +15,47 @@ class PlayoffTree:
     def __init__(self):
         self.standings= {"east":[], "west":[]}
 
+def getWinningTeam(team1, team2):
+    return team1 if team1.predicted_label>team2.predicted_label else team2
+
+def simPlayoffs(pt):
+    confs= {"east":0, "west":0} #value is winner of the conference
+    for conf in confs:
+        curr_round= [team for team in pt.standings[conf]]
+        next_round= []
+        while len(curr_round)+len(next_round)>1: 
+            #print "curr_round", [elem.url for elem in curr_round]
+            #print "next_round", [elem.url for elem in next_round]
+            #print "\n\n"
+            winner= getWinningTeam(curr_round[0], curr_round[-1])
+            #print curr_round[0].url, curr_round[-1].url, "winner:", winner.url
+            winner.predicted_label += 1
+            next_round += [winner]
+            curr_round= curr_round[1:-1]
+            if len(curr_round)==0:
+                curr_round= next_round
+                next_round= []
+        confs[conf]= curr_round[0]
+    winner= getWinningTeam(confs["east"], confs["west"])
+    winner.predicted_label += 1
+    #print winner.url
+    for conf in confs:
+        for team in pt.standings[conf]:
+            print team.url, "True:", team.true_label, "Predicted:", team.predicted_label
+
 #type is train or test data
-def csvToLists(csv, data_type):
+def csvToLists(csv, data_type, year=2014):
     datafile = open(csv, 'r')
     data = []
     for row in datafile:
         stats= [elem for elem in row.strip().split(',')]
         if data_type=="train":
             data.append(Team(stats[-2], [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint))
+            if "/2013.html" in row: print data[-1].url, data[-1].true_label
         elif data_type=="test":
-            data.append(Team(stats[-1], [float(elem) for elem in stats[:-1]], "", sys.maxint))
+            if "/"+str(year)+".html" in row:
+                l= "" if year==2014 else stats[-1]
+                data.append(Team(stats[-1-(year!=2014)], [float(elem) for elem in stats[:-1-(year!=2014)]], l, sys.maxint))
         else:
             raise Exception("data_type must be \"train\" or \"test\"!")
     return data
@@ -86,6 +117,7 @@ def kNN(k,trainSet,testPoint):
         else:
             currMode= neighbor.true_label
             currModeFreq= 1
+    testPoint.predicted_label= mode
     return mode
 
 #uses 1/similarity_score for weight, value of infinity if sim_score=0
@@ -101,7 +133,7 @@ def weightedKNN(k,trainSet,testPoint):
         print neighbor.url, neighbor.true_label, neighbor.sim
         sum_of_weights += weight
         weighted_total += weight * neighbor.true_label
-    testPoint.true_label= weighted_total/sum_of_weights
+    testPoint.predicted_label= weighted_total/sum_of_weights
     return weighted_total/sum_of_weights
 
 def setPlayoffTree(year, teams):
@@ -123,10 +155,12 @@ if __name__=="__main__":
         raise Exception("Must provide k value!")
     k= int(sys.argv[1])
     train= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/rescale/league_ranks_rescale", "train")
-    test= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/test/rescale/league_ranks2014_rescale", "test")
+    test= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/rescale/league_ranks_rescale", "test", 2013)
+    print test
     for team in test:
         print "\n-------------------------"
         print k, "Closest neighbors of:", team.url
         print weightedKNN(k, train, team)
         print "-------------------------\n"
-    pt= setPlayoffTree(2014, test)
+    pt= setPlayoffTree(2013, test)
+    simPlayoffs(pt)
