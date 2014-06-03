@@ -9,7 +9,7 @@ class Coords:
         self.top= top
         self.bottom= bottom
 
-class PlayoffTree(tk.Frame):
+class GUI(tk.Frame):
     def __init__(self, parent, numRounds, squareWidth, length, color="white"):
         '''size is the size of a square, in pixels'''
         self.rows = numRounds
@@ -69,6 +69,6 @@ class PlayoffTree(tk.Frame):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    board = PlayoffTree(root, 4, 140, 1280)
+    board = GUI(root, 4, 140, 1280)
     board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
     root.mainloop()
