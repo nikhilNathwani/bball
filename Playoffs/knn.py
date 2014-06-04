@@ -1,7 +1,9 @@
 import sys
 import math
 import numpy as np
-#import playoffs
+import time
+import matplotlib.pyplot as plot
+import playoffs
 
 class Team:
     def __init__(self,u,a,l,s):
@@ -11,6 +13,7 @@ class Team:
         self.predicted_label= 0
         self.sim= s
         self.score= 0
+        self.winPct= -1
 
 class PlayoffTree:
     def __init__(self):
@@ -103,7 +106,7 @@ def weightedKNN(k,trainSet,testPoint):
     sum_of_weights= 0
     for neighbor in kClosest:
         weight= (1/neighbor.sim if neighbor.sim!=0 else sys.maxint/20)
-        print neighbor.url, neighbor.true_label, neighbor.sim
+        #print neighbor.url, neighbor.true_label, neighbor.sim
         sum_of_weights += weight
         weighted_total += weight * neighbor.true_label
     testPoint.score= weighted_total/sum_of_weights
@@ -123,16 +126,32 @@ def setPlayoffTree(year, teams):
         for row in standings_file:
             teams += [str(row).strip()]
         pt.standings[conf]= [team_urls[t] for t in teams]
-    print "TRUE WINNER:", pt.trueWinner
+    #print "TRUE WINNER:", pt.trueWinner
     return pt
 
-def predictWinningTeam(team1, team2):
-    return team1 if team1.score>team2.score else team2
+def predictWinningTeam(team1, team2, baseline):
+    if baseline:
+        return team1 if getWinPercentage(team1)>getWinPercentage(team2) else team2
+    else:
+        return team1 if team1.score>team2.score else team2
+
+def getWinPercentage(team):
+    if team.winPct>-1:
+        return team.winPct
+    else:
+        soup= playoffs.grabSiteData("http://www.basketball-reference.com"+team.url)
+        recordPar= [p for p in soup.findAll('p') if "Record:" in p.text]
+        recordString= recordPar[0].text.encode("utf8","ignore")
+        record= recordString[recordString.find(" ")+1:recordString.find(",")]
+        wins,losses= [float(s) for s in record.split("-")]
+        team.winPct= wins/(wins+losses)
+        return team.winPct
+
 
 def actualWinningTeam(team1, team2):
     return team1 if team1.true_label>team2.true_label else team2
 
-def simPlayoffs(pt):
+def simPlayoffs(pt,baseline):
     confs= {"east":0, "west":0} #value is winner of the conference
     actual_confs= {"east":0, "west":0} #value is winner of the conference
 
@@ -144,8 +163,7 @@ def simPlayoffs(pt):
         while len(curr_round)+len(next_round)>1: 
             pt.games += [(curr_round[0], curr_round[-1])]
             pt.actuals += [(actual_curr[0], actual_curr[-1])]
-
-            winner= predictWinningTeam(curr_round[0], curr_round[-1])
+            winner= predictWinningTeam(curr_round[0], curr_round[-1],baseline)
             winner.predicted_label += 1
 
             next_round += [winner]
@@ -166,7 +184,7 @@ def simPlayoffs(pt):
     pt.games += [(confs["east"], confs["west"])]
     pt.actuals += [(actual_confs["east"], actual_confs["west"])]
 
-    winner= predictWinningTeam(confs["east"], confs["west"])
+    winner= predictWinningTeam(confs["east"], confs["west"],True)
     winner.predicted_label += 1
     for conf in confs:
         for team in pt.standings[conf]:
@@ -179,14 +197,14 @@ def numSeriesCorrect(teams):
     correct= 0
     for team in teams:
         correct += min(team.true_label,team.predicted_label)    
-    print str(correct) + " correct out of 14"
+    return correct
 
+def euclideanError(teams):
+    trues= np.array([t.true_label for t in teams])
+    predicts= np.array([t.predicted_label for t in teams])
+    return np.linalg.norm(trues-predicts)
 
-if __name__=="__main__":
-    if len(sys.argv)<=2:
-        raise Exception("Must provide k value and test year!")
-    k= int(sys.argv[1])
-    year= int(sys.argv[2])
+def reportKNNResults(k, year):
     data= csvToTrainTest("/Users/nikhilnathwani/Desktop/BBall/Playoffs/team_data/rescale/all_stats_rescale", year)
     [train,test]= [data["train"], data["test"]]
     for team in test:
@@ -194,5 +212,38 @@ if __name__=="__main__":
         print k, "Closest neighbors of:", team.url
         print weightedKNN(k, train, team)
         print "-------------------------\n"
-    pt= setPlayoffTree(year, test)
-    simPlayoffs(pt)
+
+def reportPlayoffAccuracy(k, year): 
+    scales= ["norm"]#, "norm", "raw"]
+    data_types= ["league_ranks","all_stats","per_game"]
+    results= {"league_ranks":[], "all_stats":[], "per_game":[]}
+    x= range(15,16)
+    for j in range(15, 16):
+        for scale in scales:
+            for dt in data_types:
+                data= csvToTrainTest("team_data/"+scale+"/"+dt, year)
+                [train,test]= [data["train"], data["test"]]
+                for team in test:
+                    weightedKNN(j, train, team)
+                pt= setPlayoffTree(year, test)
+                simPlayoffs(pt,False)
+                results[dt] +=[euclideanError(test)]
+                print "Scale:", scale, "Type:", dt, "Error:",str(euclideanError(test))
+    plot.plot(x,results["league_ranks"],'r-', label="League Ranks")
+    plot.plot(x,results["all_stats"],'b-', label="All Stats")
+    plot.plot(x,results["per_game"],'g-', label="Per Game")
+    #plot.axis( [0, 50, 0, 14])
+    plot.xlabel( "k Value" )
+    plot.ylabel( "Euclidean Error" )
+    plot.show()
+
+
+if __name__=="__main__":
+    start= time.time()
+    if len(sys.argv)<=2:
+        raise Exception("Must provide k value and test year!")
+    k= int(sys.argv[1])
+    year= int(sys.argv[2])
+    reportPlayoffAccuracy(k, year)
+    #getWinPercentage("/teams/BOS/1984.html")
+    print "Time taken:", time.time()-start
