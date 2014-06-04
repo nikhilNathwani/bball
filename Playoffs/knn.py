@@ -41,7 +41,8 @@ def simPlayoffs(pt):
     for conf in confs:
         for team in pt.standings[conf]:
             print team.url, "True:", team.true_label, "Predicted:", team.predicted_label
-    print len(pt.linear)
+    rearrage= [0,3,1,2,7,10,8,9,4,5,11,12,6,13,14]
+    pt.linear= [pt.linear[x] for x in rearrage]
 
 #returns dict with "train" and "test" lists of data
 def csvToTrainTest(csv, year):
