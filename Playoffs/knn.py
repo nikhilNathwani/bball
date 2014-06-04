@@ -179,7 +179,7 @@ def numSeriesCorrect(teams):
     correct= 0
     for team in teams:
         correct += min(team.true_label,team.predicted_label)    
-    print str(correct) + " correct out of " + str(len(teams))
+    print str(correct) + " correct out of 14"
 
 
 if __name__=="__main__":
