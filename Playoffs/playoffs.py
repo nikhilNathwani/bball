@@ -8,10 +8,6 @@ from bs4 import BeautifulSoup
 
 #un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
 statsToIgnore= ["player","g", "mp", "arena_name", "attendance", "wins_pyth", "losses_pyth"]
-currTeams= ['/teams/BRK/2014.html', '/teams/IND/2014.html', '/teams/MIA/2014.html', '/teams/WAS/2014.html',
-            '/teams/SAS/2014.html', '/teams/LAC/2014.html', '/teams/OKC/2014.html', '/teams/POR/2014.html',
-            '/teams/TOR/2014.html', '/teams/ATL/2014.html', '/teams/CHA/2014.html', '/teams/CHI/2014.html',
-            '/teams/DAL/2014.html', '/teams/GSW/2014.html', '/teams/MEM/2014.html', '/teams/HOU/2014.html']
 
 def grabSiteData(url):
     usock= urllib2.urlopen(url)
@@ -105,25 +101,6 @@ def createTrainingSets(yearStart, yearEnd, folder, fn_all_stats, fn_per_game, fn
         print "Done with year", year
 
 
-def createTestSets(folder, fn_all_stats, fn_per_game, fn_lg_ranks):
-    #create CSVs and csv_writers
-    asCSV= open(folder+fn_all_stats,'wb')  #"as" for "all stats"
-    pgCSV= open(folder+fn_per_game,'wb')   #"pg" for "per game"
-    lrCSV= open(folder+fn_lg_ranks,'wb')   #"lr" for "league ranks"
-    as_wr = csv.writer(asCSV)
-    pg_wr = csv.writer(pgCSV)
-    lr_wr = csv.writer(lrCSV)
-
-    #populate CSVs
-    for teamURL in currTeams:
-        arrs= (all_stats,per_game,lg_ranks)= scrapeTeamStats(teamURL)
-        for arr in arrs:
-            arr += [teamURL] 
-        as_wr.writerow(all_stats)
-        pg_wr.writerow(per_game)
-        lr_wr.writerow(lg_ranks)
-    print "Done"
-
 def getPlayoffStandings(year):
     query_soup= grabSiteData("http://www.basketball-reference.com/leagues/NBA_"+str(year)+".html")
     confs= {"east":[0]*8,"west":[0]*8}
@@ -141,7 +118,6 @@ def getPlayoffStandings(year):
             print url
             wr.writerow(url)
 
-def
 
 if __name__=="__main__":
     start= time.time()
