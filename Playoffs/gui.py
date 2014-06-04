@@ -36,16 +36,19 @@ class GUI(tk.Frame):
     def showScore(self, t):
         return self.teamName(t)+": "+str(t.score)[:-5]+"\n"
 
-    def toString(self, t1, t2):
-        winner= t1 if t1.score>t2.score else t2
-        return self.showScore(t1)+self.showScore(t2)+"\nWinner: " + self.teamName(winner)
+    def toString(self, t1, t2, a1, a2):
+        predicted_winner= t1 if t1.score>t2.score else t2
+        actual_winner= a1 if a1.true_label > a2.true_label else a2
+        correct= "RIGHT" if predicted_winner==actual_winner else "WRONG"
+        return self.showScore(t1)+self.showScore(t2)+"\nWinner: " + self.teamName(predicted_winner)+"\nActual: " + self.teamName(actual_winner) + "\n" + correct
 
     def refresh(self, event):
         '''Redraw the board, possibly in response to window being resized'''
         pad= (self.length-(self.size*self.columns))/(self.columns+1)
         gap= pad
         matchups= []
-        teams= self.playoff_tree.games
+        games= self.playoff_tree.games
+        actual_games= self.playoff_tree.actuals
         ind= 0
         for row in range(self.rows):
             matchup= []
@@ -61,7 +64,7 @@ class GUI(tk.Frame):
                     if col%2==1:
                         matchups += [matchup]
                         matchup= []
-                    s= self.toString(teams[ind][0], teams[ind][1])
+                    s= self.toString(games[ind][0], games[ind][1], actual_games[ind][0], actual_games[ind][1])
                     self.canvas.create_text((x1+x2)/2, (y1+y2)/2, text=s, font="Times 16", tags="matchup")
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=self.color, tags="square")
                     ind+=1
@@ -80,7 +83,7 @@ class GUI(tk.Frame):
                     if i%2==1:
                         matchups += [matchup]
                         matchup= []
-                    s= self.toString(teams[ind][0], teams[ind][1])
+                    s= self.toString(games[ind][0], games[ind][1], actual_games[ind][0], actual_games[ind][1])
                     self.canvas.create_text((x1+x2)/2, (y1+y2)/2,text=s, font="Times 16", tags="matchup")
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=self.color, tags="square")
                     ind+=1
@@ -103,7 +106,7 @@ if __name__ == "__main__":
         print "-------------------------\n"
     pt= knn.setPlayoffTree(year, test)
     knn.simPlayoffs(pt)
-    knn.numCorrect(test)
+    knn.numSeriesCorrect(test)
     root = tk.Tk()
     gui = GUI(root, pt, 4, 140, 1280)
     gui.pack(side="top", fill="both", expand="true", padx=4, pady=4)
