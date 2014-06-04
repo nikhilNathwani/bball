@@ -10,13 +10,15 @@ class Team:
         self.true_label= l
         self.predicted_label= 0
         self.sim= s
+        self.score= 0
 
 class PlayoffTree:
     def __init__(self):
         self.standings= {"east":[], "west":[]}
+        self.linear= []
 
 def getWinningTeam(team1, team2):
-    return team1 if team1.predicted_label>team2.predicted_label else team2
+    return team1 if team1.score>team2.score else team2
 
 def simPlayoffs(pt):
     confs= {"east":0, "west":0} #value is winner of the conference
@@ -24,43 +26,39 @@ def simPlayoffs(pt):
         curr_round= [team for team in pt.standings[conf]]
         next_round= []
         while len(curr_round)+len(next_round)>1: 
-            #print "curr_round", [elem.url for elem in curr_round]
-            #print "next_round", [elem.url for elem in next_round]
-            #print "\n\n"
+            pt.linear += [(curr_round[0], curr_round[-1])]
             winner= getWinningTeam(curr_round[0], curr_round[-1])
-            #print curr_round[0].url, curr_round[-1].url, "winner:", winner.url
             winner.predicted_label += 1
             next_round += [winner]
             curr_round= curr_round[1:-1]
             if len(curr_round)==0:
                 curr_round= next_round
                 next_round= []
-        confs[conf]= curr_round[0]
+        confs[conf]= curr_round[0] #last team in curr_round is conference winner
+    pt.linear += [(confs["east"], confs["west"])]
     winner= getWinningTeam(confs["east"], confs["west"])
     winner.predicted_label += 1
-    #print winner.url
     for conf in confs:
         for team in pt.standings[conf]:
             print team.url, "True:", team.true_label, "Predicted:", team.predicted_label
+    print len(pt.linear)
 
-#type is train or test data
-def csvToLists(csv, data_type, year=2014):
+#returns dict with "train" and "test" lists of data
+def csvToTrainTest(csv, year):
     datafile = open(csv, 'r')
-    data = []
+    train = []
+    test= []
     for row in datafile:
         stats= [elem for elem in row.strip().split(',')]
-        if data_type=="train":
-            data.append(Team(stats[-2], [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint))
-            if "/2013.html" in row: print data[-1].url, data[-1].true_label
-        elif data_type=="test":
-            if "/"+str(year)+".html" in row:
-                l= "" if year==2014 else stats[-1]
-                data.append(Team(stats[-1-(year!=2014)], [float(elem) for elem in stats[:-1-(year!=2014)]], l, sys.maxint))
-        else:
-            raise Exception("data_type must be \"train\" or \"test\"!")
-    return data
+        url= stats[-2]
+        team= Team(url, [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint)
+        team_yr= int(url[url.rfind('/')+1:url.rfind(".html")])
+        if team_yr==year:
+            test.append(team)
+        if team_yr<year:
+            train.append(team)
+    return {"train":train, "test":test}
 
-#ignores last entry b/c that's assumed to be the label
 def dist(a,b):
     arr_a= np.array(a.attr)
     arr_b= np.array(b.attr)
@@ -98,7 +96,6 @@ def getNearestNeighbors(k, trainSet, testPoint):
 def teamSort(teams):
     return sorted(teams, key=lambda team: team.true_label)
 
-##IN THIS AND WEIGHTED CASE, NEED TO DEFINE SORT FOR ARRAY OF TEAMS
 #no weighting, just majority vote
 def kNN(k,trainSet,testPoint):
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
@@ -133,7 +130,7 @@ def weightedKNN(k,trainSet,testPoint):
         print neighbor.url, neighbor.true_label, neighbor.sim
         sum_of_weights += weight
         weighted_total += weight * neighbor.true_label
-    testPoint.predicted_label= weighted_total/sum_of_weights
+    testPoint.score= weighted_total/sum_of_weights
     return weighted_total/sum_of_weights
 
 def setPlayoffTree(year, teams):
@@ -151,16 +148,17 @@ def setPlayoffTree(year, teams):
     return pt
 
 if __name__=="__main__":
-    if len(sys.argv)<=1:
-        raise Exception("Must provide k value!")
+    if len(sys.argv)<=2:
+        raise Exception("Must provide k value and test year!")
     k= int(sys.argv[1])
-    train= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/rescale/league_ranks_rescale", "train")
-    test= csvToLists("/Users/nikhilnathwani/Desktop/BBall/Playoffs/training/rescale/league_ranks_rescale", "test", 2013)
-    print test
+    year= int(sys.argv[2])
+    data= csvToTrainTest("/Users/nikhilnathwani/Desktop/BBall/Playoffs/team_data/rescale/all_stats_rescale", year)
+    [train,test]= [data["train"], data["test"]]
+    print len(test), len(train)
     for team in test:
         print "\n-------------------------"
         print k, "Closest neighbors of:", team.url
         print weightedKNN(k, train, team)
         print "-------------------------\n"
-    pt= setPlayoffTree(2013, test)
+    pt= setPlayoffTree(year, test)
     simPlayoffs(pt)
