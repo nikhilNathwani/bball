@@ -15,34 +15,7 @@ class Team:
 class PlayoffTree:
     def __init__(self):
         self.standings= {"east":[], "west":[]}
-        self.linear= []
-
-def getWinningTeam(team1, team2):
-    return team1 if team1.score>team2.score else team2
-
-def simPlayoffs(pt):
-    confs= {"east":0, "west":0} #value is winner of the conference
-    for conf in confs:
-        curr_round= [team for team in pt.standings[conf]]
-        next_round= []
-        while len(curr_round)+len(next_round)>1: 
-            pt.linear += [(curr_round[0], curr_round[-1])]
-            winner= getWinningTeam(curr_round[0], curr_round[-1])
-            winner.predicted_label += 1
-            next_round += [winner]
-            curr_round= curr_round[1:-1]
-            if len(curr_round)==0:
-                curr_round= next_round
-                next_round= []
-        confs[conf]= curr_round[0] #last team in curr_round is conference winner
-    pt.linear += [(confs["east"], confs["west"])]
-    winner= getWinningTeam(confs["east"], confs["west"])
-    winner.predicted_label += 1
-    for conf in confs:
-        for team in pt.standings[conf]:
-            print team.url, "True:", team.true_label, "Predicted:", team.predicted_label
-    rearrage= [0,3,1,2,7,10,8,9,4,5,11,12,6,13,14]
-    pt.linear= [pt.linear[x] for x in rearrage]
+        self.games= [] #list of tuples of all playoff matchups, used in gui.py
 
 #returns dict with "train" and "test" lists of data
 def csvToTrainTest(csv, year):
@@ -148,6 +121,40 @@ def setPlayoffTree(year, teams):
         pt.standings[conf]= [team_urls[t] for t in teams]
     return pt
 
+def getWinningTeam(team1, team2):
+    return team1 if team1.score>team2.score else team2
+
+def simPlayoffs(pt):
+    confs= {"east":0, "west":0} #value is winner of the conference
+    for conf in confs:
+        curr_round= [team for team in pt.standings[conf]]
+        next_round= []
+        while len(curr_round)+len(next_round)>1: 
+            pt.games += [(curr_round[0], curr_round[-1])]
+            winner= getWinningTeam(curr_round[0], curr_round[-1])
+            winner.predicted_label += 1
+            next_round += [winner]
+            curr_round= curr_round[1:-1]
+            if len(curr_round)==0:
+                curr_round= next_round
+                next_round= []
+        confs[conf]= curr_round[0] #last team in curr_round is conference winner
+    pt.games += [(confs["east"], confs["west"])]
+    winner= getWinningTeam(confs["east"], confs["west"])
+    winner.predicted_label += 1
+    for conf in confs:
+        for team in pt.standings[conf]:
+            print team.url, "True:", team.true_label, "Predicted:", team.predicted_label
+    rearrage= [0,3,1,2,7,10,8,9,4,5,11,12,6,13,14]
+    pt.games= [pt.games[x] for x in rearrage]
+
+def numCorrect(teams):
+    correct= 0
+    for team in teams:
+        correct += team.true_label==team.predicted_label
+    print str(correct) + " correct out of " + str(len(teams))
+
+
 if __name__=="__main__":
     if len(sys.argv)<=2:
         raise Exception("Must provide k value and test year!")
@@ -155,7 +162,6 @@ if __name__=="__main__":
     year= int(sys.argv[2])
     data= csvToTrainTest("/Users/nikhilnathwani/Desktop/BBall/Playoffs/team_data/rescale/all_stats_rescale", year)
     [train,test]= [data["train"], data["test"]]
-    print len(test), len(train)
     for team in test:
         print "\n-------------------------"
         print k, "Closest neighbors of:", team.url

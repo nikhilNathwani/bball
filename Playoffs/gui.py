@@ -42,17 +42,15 @@ class GUI(tk.Frame):
 
     def refresh(self, event):
         '''Redraw the board, possibly in response to window being resized'''
-        #self.canvas.delete("square")
-        #self.canvas.delete("nums")
         pad= (self.length-(self.size*self.columns))/(self.columns+1)
         gap= pad
         matchups= []
-        teams= self.playoff_tree.linear
-        print "\n\n\n"
-        print teams
+        teams= self.playoff_tree.games
         ind= 0
         for row in range(self.rows):
             matchup= []
+
+            #draw the top row of playoff matchups
             if row==0:
                 for col in range(self.columns):
                     x1 = pad+col*(self.size+pad)
@@ -64,9 +62,11 @@ class GUI(tk.Frame):
                         matchups += [matchup]
                         matchup= []
                     s= self.toString(teams[ind][0], teams[ind][1])
-                    self.canvas.create_text((x1+x2)/2, (y1+y2)/2, text=s, font="Times 16", tags="nums")
+                    self.canvas.create_text((x1+x2)/2, (y1+y2)/2, text=s, font="Times 16", tags="matchup")
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=self.color, tags="square")
                     ind+=1
+
+            #draw the squares in remaining rows of playoff matchups by averaging coordinates of previous rows
             else: 
                 m= len(matchups)
                 for i in range(m):
@@ -81,10 +81,10 @@ class GUI(tk.Frame):
                         matchups += [matchup]
                         matchup= []
                     s= self.toString(teams[ind][0], teams[ind][1])
-                    self.canvas.create_text((x1+x2)/2, (y1+y2)/2,text=s, font="Times 16", tags="nums")
+                    self.canvas.create_text((x1+x2)/2, (y1+y2)/2,text=s, font="Times 16", tags="matchup")
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=self.color, tags="square")
                     ind+=1
-        self.canvas.tag_raise("piece")
+        self.canvas.tag_raise("matchup")
         self.canvas.tag_lower("square")
 
 
@@ -103,6 +103,7 @@ if __name__ == "__main__":
         print "-------------------------\n"
     pt= knn.setPlayoffTree(year, test)
     knn.simPlayoffs(pt)
+    knn.numCorrect(test)
     root = tk.Tk()
     gui = GUI(root, pt, 4, 140, 1280)
     gui.pack(side="top", fill="both", expand="true", padx=4, pady=4)
