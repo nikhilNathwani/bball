@@ -44,8 +44,8 @@ class GUI(tk.Frame):
         pad= (self.length-(self.size*self.columns))/(self.columns+1)
         gap= pad
         matchups= []
-        games= self.playoff_tree.games
-        actual_games= self.playoff_tree.actuals
+        games= [self.playoff_tree.games[x] for x in rearrage]
+        actual_games= [self.playoff_tree.actuals[x] for x in rearrage]
         ind= 0
         for row in range(self.rows):
             matchup= []

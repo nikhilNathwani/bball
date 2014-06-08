@@ -5,26 +5,22 @@ import time
 import matplotlib.pyplot as plot
 from model import *
 
-#returns dict with "train" and "test" lists of data
-def csvToTrainTest(csv, year):
-    datafile = open(csv, 'r')
-    train = []
-    test= []
-    for row in datafile:
-        stats= [elem for elem in row.strip().split(',')]
-        url= stats[-2]
-        team= Team(url, [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint)
-        team_yr= int(url[url.rfind('/')+1:url.rfind(".html")])
-        if team_yr==year:
-            test.append(team)
-        if team_yr<year:
-            train.append(team)
-    return {"train":train, "test":test}
+class Team:
+    def __init__(self,u,a,l,s):
+        self.url= u
+        self.attr= a
+        self.true_label= l
+        self.predicted_label= 0
+        self.sim= s
+        self.score= 0
+        self.winPct= -1
 
-def dist(a,b):
-    arr_a= np.array(a.attr)
-    arr_b= np.array(b.attr)
-    return np.linalg.norm(arr_a-arr_b)
+class PlayoffTree:
+    def __init__(self):
+        self.standings= {"east":[], "west":[]}
+        self.games= [] #list of tuples of all playoff matchups, used in gui.py
+        self.actuals= [] #actual game matchups
+        self.trueWinner= ""
 
 #returns an array of the form:
 #[[neighbor_1_label, similarity score], ..., [neighbor_k_label, similarity score]]
@@ -95,23 +91,6 @@ def weightedKNN(k,trainSet,testPoint):
     testPoint.score= weighted_total/sum_of_weights
     return weighted_total/sum_of_weights
 
-def setPlayoffTree(year, teams):
-    confs= ["east","west"]
-    team_urls= {}
-    pt= PlayoffTree()
-    for team in teams:
-        team_urls[team.url]= team
-        if team.true_label==4:
-            pt.trueWinner= team.url
-    for conf in confs:
-        standings_file = open("standings/"+conf+"/"+str(year), 'r')
-        teams= []
-        for row in standings_file:
-            teams += [str(row).strip()]
-        pt.standings[conf]= [team_urls[t] for t in teams]
-    #print "TRUE WINNER:", pt.trueWinner
-    return pt
-
 def predictWinningTeam(team1, team2, baseline):
     if baseline:
         return team1 if getWinPercentage(team1)>getWinPercentage(team2) else team2
@@ -130,51 +109,8 @@ def getWinPercentage(team):
         team.winPct= wins/(wins+losses)
         return team.winPct
 
-
 def actualWinningTeam(team1, team2):
     return team1 if team1.true_label>team2.true_label else team2
-
-def simPlayoffs(pt,baseline):
-    confs= {"east":0, "west":0} #value is winner of the conference
-    actual_confs= {"east":0, "west":0} #value is winner of the conference
-
-    for conf in confs:
-        curr_round= [team for team in pt.standings[conf]]
-        actual_curr= [x for x in curr_round]
-        next_round= []
-        actual_next= []
-        while len(curr_round)+len(next_round)>1: 
-            pt.games += [(curr_round[0], curr_round[-1])]
-            pt.actuals += [(actual_curr[0], actual_curr[-1])]
-            winner= predictWinningTeam(curr_round[0], curr_round[-1],baseline)
-            winner.predicted_label += 1
-
-            next_round += [winner]
-            actual_next += [actualWinningTeam(actual_curr[0], actual_curr[-1])]
-
-            curr_round= curr_round[1:-1]
-            actual_curr= actual_curr[1:-1]
-            if len(curr_round)==0:
-                curr_round= next_round
-                actual_curr= actual_next
-
-                next_round= []
-                actual_next= []
-
-        confs[conf]= curr_round[0] #last team in curr_round is conference winner
-        actual_confs[conf]= actual_curr[0]
-
-    pt.games += [(confs["east"], confs["west"])]
-    pt.actuals += [(actual_confs["east"], actual_confs["west"])]
-
-    winner= predictWinningTeam(confs["east"], confs["west"],True)
-    winner.predicted_label += 1
-    for conf in confs:
-        for team in pt.standings[conf]:
-            print team.url, "True:", team.true_label, "Predicted:", team.predicted_label
-    rearrage= [0,3,1,2,7,10,8,9,4,5,11,12,6,13,14]
-    pt.games= [pt.games[x] for x in rearrage]
-    pt.actuals= [pt.actuals[x] for x in rearrage]
 
 def numSeriesCorrect(teams):
     correct= 0
