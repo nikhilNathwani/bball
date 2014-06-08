@@ -3,24 +3,7 @@ import math
 import numpy as np
 import time
 import matplotlib.pyplot as plot
-import playoffs
-
-class Team:
-    def __init__(self,u,a,l,s):
-        self.url= u
-        self.attr= a
-        self.true_label= l
-        self.predicted_label= 0
-        self.sim= s
-        self.score= 0
-        self.winPct= -1
-
-class PlayoffTree:
-    def __init__(self):
-        self.standings= {"east":[], "west":[]}
-        self.games= [] #list of tuples of all playoff matchups, used in gui.py
-        self.actuals= [] #actual game matchups
-        self.trueWinner= ""
+from model import *
 
 #returns dict with "train" and "test" lists of data
 def csvToTrainTest(csv, year):

@@ -6,14 +6,32 @@ import urllib2
 import sys
 from bs4 import BeautifulSoup
 
+teamsByYear= {}
+
+class Team:
+    def __init__(self,u,a,l,s):
+        self.url= u
+        self.attr= a
+        self.true_label= l
+        self.predicted_label= 0
+        self.sim= s
+        self.score= 0
+        self.winPct= -1
+        self.year= 0
+
+    def teamName(self, t):
+        s= t.url
+        return s[:s.rfind('/')][s[:s.rfind('/')].rfind('/')+1:]
+
+class PlayoffTree:
+    def __init__(self):
+        self.standings= {"east":[], "west":[]}
+        self.games= [] #list of tuples of all playoff matchups, used in gui.py
+        self.actuals= [] #actual game matchups
+        self.trueWinner= ""
+
 #un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
 statsToIgnore= ["player","g", "mp", "arena_name", "attendance", "wins_pyth", "losses_pyth"]
-
-def grabSiteData(url):
-    usock= urllib2.urlopen(url)
-    data= usock.read()
-    usock.close()
-    return BeautifulSoup(data)
 
 #returns dictionary of (playoff_team_url,num_wins_in_playoffs) pairs
 def getPlayoffTeams(year):

@@ -1,5 +1,6 @@
 import Tkinter as tk
-import knn
+from neighbors import *
+from model import *
 import math
 import sys
 
@@ -28,10 +29,6 @@ class GUI(tk.Frame):
         # this binding will cause a refresh if the user interactively
         # changes the window size
         self.canvas.bind("<Configure>", self.refresh)
-    
-    def teamName(self, t):
-        s= t.url
-        return s[:s.rfind('/')][s[:s.rfind('/')].rfind('/')+1:]
 
     def showScore(self, t):
         return self.teamName(t)+": "+str(t.score)[:-5]+"\n"
