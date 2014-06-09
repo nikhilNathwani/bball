@@ -10,7 +10,7 @@ def grabSiteData(url):
     data= usock.read()
     usock.close()
     return BeautifulSoup(data)
-    
+
 def csvToLists(fn):
 	rows= []
 	with open(fn) as f:
@@ -200,14 +200,3 @@ def standardizeNorm(scale,name):
 	
 	#save scaling info (mins and diffs) to file 
 	listsToCSV([norms],'scales/norm/'+file_base+'_scales')
-
-
-if __name__=="__main__":
-	start=time.time()
-	for scale= ["rescale", "norm"]
-		for name in ['all_stats', 'per_game', 'league_ranks']:
-			if scale=="rescale":
-				standardizeRescale(scale,name)
-			else:
-				standardizeNorm(scale,name)
-	print "Time taken:", time.time()-start
