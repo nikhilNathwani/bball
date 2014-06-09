@@ -5,6 +5,7 @@ import csv
 import urllib2
 import sys
 from bs4 import BeautifulSoup
+import numpy as np
 
 teamsByYear= {}
 
@@ -17,16 +18,20 @@ class Team:
         self.sim= s
         self.score= 0
         self.winPct= -1
-        self.year= int(url[url.rfind('/')+1:url.rfind(".html")])
+        self.year= self.yearFromURL()
+
+    def yearFromURL(self):
+        url= self.url
+        return int(url[url.rfind('/')+1:url.rfind(".html")])
 
     def teamName(self, t):
         s= t.url
         return s[:s.rfind('/')][s[:s.rfind('/')].rfind('/')+1:]
 
-    def dist(a,b):
-        arr_a= np.array(a.attr)
-        arr_b= np.array(b.attr)
-        return np.linalg.norm(arr_a-arr_b)
+    def dist(self,other):
+        arr_self= np.array(self.attr)
+        arr_other= np.array(other.attr)
+        return np.linalg.norm(arr_self-arr_other)
 
     def getWinPercentage(self):
         if self.winPct>-1:

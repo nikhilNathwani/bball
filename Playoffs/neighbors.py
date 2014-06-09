@@ -14,7 +14,7 @@ def getNearestNeighbors(k, trainSet, testPoint):
     distBound= -sys.maxint-1
     furthestIndex= 0
     for example in trainSet:
-        example.sim= dist(example,testPoint)
+        example.sim= example.dist(testPoint)
         #if there aren't k neighbors yet, add one
         if(len(kClosest) < k):
             kClosest += [example]

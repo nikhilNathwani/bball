@@ -32,7 +32,7 @@ def transpose(lst):
 #returns dict with "train" and "test" lists of Team data
 #test list has teams from year "year", train has teams from years < "year"
 def csvToTrainTest(csv, year):
-	global teamsByYear
+    global teamsByYear
     datafile = open(csv, 'r')
     train = []
     test= []
@@ -44,7 +44,7 @@ def csvToTrainTest(csv, year):
             test.append(team)
         if team.year<year:
             train.append(team)
-        teamsByYear[team.year].append(team)
+        teamsByYear[team.year]= teamsByYear.get(team.year,[]) + [team]
     return {"train":train, "test":test}
 
 #un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
@@ -162,7 +162,7 @@ def getPlayoffStandings(year):
 def standardizeRescale(scale,name):
 	old_data_fn= 'team_data/raw/'+name
 	new_data_fn= 'team_data/'+scale+'/'+name
-	scale_fn= 'scales/'scale'/'+name+'_scales'
+	scale_fn= 'scales/'+scale+'/'+name+'_scales'
 	mins, diffs= [[],[]]
 
 	#get team data from file	
@@ -186,7 +186,7 @@ def standardizeRescale(scale,name):
 def standardizeNorm(scale,name):
 	old_data_fn= 'team_data/raw/'+name
 	new_data_fn= 'team_data/'+scale+'/'+name
-	scale_fn= 'scales/'scale'/'+name+'_scales'
+	scale_fn= 'scales/'+scale+'/'+name+'_scales'
 	norms=[]
 
 	#get train/test data from file	
@@ -204,11 +204,3 @@ def standardizeNorm(scale,name):
 	
 	#save scaling info (mins and diffs) to file 
 	listsToCSV([norms],'scales/norm/'+file_base+'_scales')
-
-
-if __name__=="__main__":
-	start=time.time()
-	for scale= ["rescale", "norm"]
-		for name in ['all_stats', 'per_game', 'league_ranks']:
-			standardizeNorm(scale,name)
-	print "Time taken:", time.time()-start
