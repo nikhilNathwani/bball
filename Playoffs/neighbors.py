@@ -5,23 +5,6 @@ import time
 import matplotlib.pyplot as plot
 from model import *
 
-class Team:
-    def __init__(self,u,a,l,s):
-        self.url= u
-        self.attr= a
-        self.true_label= l
-        self.predicted_label= 0
-        self.sim= s
-        self.score= 0
-        self.winPct= -1
-
-class PlayoffTree:
-    def __init__(self):
-        self.standings= {"east":[], "west":[]}
-        self.games= [] #list of tuples of all playoff matchups, used in gui.py
-        self.actuals= [] #actual game matchups
-        self.trueWinner= ""
-
 #returns an array of the form:
 #[[neighbor_1_label, similarity score], ..., [neighbor_k_label, similarity score]]
 def getNearestNeighbors(k, trainSet, testPoint):
@@ -90,27 +73,6 @@ def weightedKNN(k,trainSet,testPoint):
         weighted_total += weight * neighbor.true_label
     testPoint.score= weighted_total/sum_of_weights
     return weighted_total/sum_of_weights
-
-def predictWinningTeam(team1, team2, baseline):
-    if baseline:
-        return team1 if getWinPercentage(team1)>getWinPercentage(team2) else team2
-    else:
-        return team1 if team1.score>team2.score else team2
-
-def getWinPercentage(team):
-    if team.winPct>-1:
-        return team.winPct
-    else:
-        soup= playoffs.grabSiteData("http://www.basketball-reference.com"+team.url)
-        recordPar= [p for p in soup.findAll('p') if "Record:" in p.text]
-        recordString= recordPar[0].text.encode("utf8","ignore")
-        record= recordString[recordString.find(" ")+1:recordString.find(",")]
-        wins,losses= [float(s) for s in record.split("-")]
-        team.winPct= wins/(wins+losses)
-        return team.winPct
-
-def actualWinningTeam(team1, team2):
-    return team1 if team1.true_label>team2.true_label else team2
 
 def numSeriesCorrect(teams):
     correct= 0
