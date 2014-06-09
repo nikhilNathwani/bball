@@ -4,6 +4,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plot
 from model import *
+from dataProcess import *
 
 #returns an array of the form:
 #[[neighbor_1_label, similarity score], ..., [neighbor_k_label, similarity score]]
@@ -106,8 +107,7 @@ def reportPlayoffAccuracy(k, year):
                 [train,test]= [data["train"], data["test"]]
                 for team in test:
                     weightedKNN(j, train, team)
-                pt= setPlayoffTree(year, test)
-                simPlayoffs(pt,False)
+                pt= PlayoffTree(year, test,False)
                 results[dt] +=[euclideanError(test)]
                 print "Scale:", scale, "Type:", dt, "Error:",str(euclideanError(test))
     plot.plot(x,results["league_ranks"],'r-', label="League Ranks")

@@ -1,6 +1,7 @@
 import Tkinter as tk
 from neighbors import *
 from model import *
+from dataProcess import *
 import math
 import sys
 
@@ -31,21 +32,22 @@ class GUI(tk.Frame):
         self.canvas.bind("<Configure>", self.refresh)
 
     def showScore(self, t):
-        return self.teamName(t)+": "+str(t.score)[:-5]+"\n"
+        return t.teamName()+": "+str(t.score)[:-5]+"\n"
 
     def toString(self, t1, t2, a1, a2):
         predicted_winner= t1 if t1.score>t2.score else t2
         actual_winner= a1 if a1.true_label > a2.true_label else a2
         correct= "RIGHT" if predicted_winner==actual_winner else "WRONG"
-        return self.showScore(t1)+self.showScore(t2)+"\nWinner: " + self.teamName(predicted_winner)+"\nActual: " + self.teamName(actual_winner) + "\n" + correct
+        return self.showScore(t1)+self.showScore(t2)+"\nWinner: " + predicted_winner.teamName()+"\nActual: " + actual_winner.teamName() + "\n" + correct
 
     def refresh(self, event):
         '''Redraw the board, possibly in response to window being resized'''
         pad= (self.length-(self.size*self.columns))/(self.columns+1)
         gap= pad
         matchups= []
-        games= [self.playoff_tree.games[x] for x in rearrage]
-        actual_games= [self.playoff_tree.actuals[x] for x in rearrage]
+        rearrange= [0,3,1,2,7,10,8,9,4,5,11,12,6,13,14]
+        games= [self.playoff_tree.games[x] for x in rearrange]
+        actual_games= [self.playoff_tree.actuals[x] for x in rearrange]
         ind= 0
         for row in range(self.rows):
             matchup= []
@@ -93,17 +95,16 @@ if __name__ == "__main__":
         raise Exception("Must provide k value and test year!")
     k= int(sys.argv[1])
     year= int(sys.argv[2])
-    data= knn.csvToTrainTest("/Users/nikhilnathwani/Desktop/BBall/Playoffs/team_data/rescale/all_stats_rescale", year)
+    data= csvToTrainTest("/Users/nikhilnathwani/Desktop/BBall/Playoffs/team_data/rescale/all_stats", year)
     [train,test]= [data["train"], data["test"]]
     print len(test), len(train)
     for team in test:
         print "\n-------------------------"
         print k, "Closest neighbors of:", team.url
-        print knn.weightedKNN(k, train, team)
+        print weightedKNN(k, train, team)
         print "-------------------------\n"
-    pt= knn.setPlayoffTree(year, test)
-    knn.simPlayoffs(pt)
-    knn.numSeriesCorrect(test)
+    pt= PlayoffTree(year,test,False)
+    numSeriesCorrect(test)
     root = tk.Tk()
     gui = GUI(root, pt, 4, 140, 1280)
     gui.pack(side="top", fill="both", expand="true", padx=4, pady=4)

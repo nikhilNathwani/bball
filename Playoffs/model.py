@@ -7,6 +7,13 @@ import sys
 from bs4 import BeautifulSoup
 import numpy as np
 
+#fetches beautifulsoup-formatted data from given url
+def grabSiteData(url):
+    usock= urllib2.urlopen(url)
+    data= usock.read()
+    usock.close()
+    return BeautifulSoup(data)
+
 teamsByYear= {}
 
 class Team:
@@ -24,8 +31,8 @@ class Team:
         url= self.url
         return int(url[url.rfind('/')+1:url.rfind(".html")])
 
-    def teamName(self, t):
-        s= t.url
+    def teamName(self):
+        s= self.url
         return s[:s.rfind('/')][s[:s.rfind('/')].rfind('/')+1:]
 
     def dist(self,other):
@@ -37,13 +44,23 @@ class Team:
         if self.winPct>-1:
             return self.winPct
         else:
-            soup= playoffs.grabSiteData("http://www.basketball-reference.com"+self.url)
+            soup= grabSiteData("http://www.basketball-reference.com"+self.url)
             recordPar= [p for p in soup.findAll('p') if "Record:" in p.text]
             recordString= recordPar[0].text.encode("utf8","ignore")
             record= recordString[recordString.find(" ")+1:recordString.find(",")]
             wins,losses= [float(s) for s in record.split("-")]
             self.winPct= wins/(wins+losses)
             return self.winPct
+
+    #baseline is True if baseline metric is to be used, False otherwise
+    def predictWinningTeam(self, other, baseline):
+        if baseline:
+            return self if self.getWinPercentage()>other.getWinPercentage() else other
+        else:
+            return self if self.score>other.score else other
+
+    def actualWinningTeam(self, other):
+        return self if self.true_label>other.true_label else other
 
 class PlayoffTree:
     def __init__(self):
@@ -59,9 +76,11 @@ class PlayoffTree:
     def __init__(self, year, teams, baseline):
         self.games= []
         self.actuals= []
-        confs= ["east","west"]
-        team_urls= {}
+        self.trueWinner= ""
+        self.standings= {}
 
+        team_urls= {}
+        confs= ["east","west"]
         #set trueWinner var and hash teams based on team.url
         for team in teams:
             team_urls[team.url]= team
@@ -80,25 +99,16 @@ class PlayoffTree:
         self.simPlayoffs()
         self.predictPlayoffs(baseline)
 
-    #baseline is True if baseline metric is to be used, False otherwise
-    def predictWinningTeam(team1, team2, baseline):
-        if baseline:
-            return team1 if team1.getWinPercentage()>team2.getWinPercentage() else team2
-        else:
-            return team1 if team1.score>team2.score else team2
-
-    def actualWinningTeam(team1, team2):
-        return team1 if team1.true_label>team2.true_label else team2
-
     def simPlayoffs(self):
+        confs= {"east":0, "west":0} #value is winner of the conference
         #set actuals list (list of pairs corresp to actual playoff matchups)
         #methodology is similar to the way games list is created in predictPlayoffs
         for conf in confs:
-            actual_curr= [x for x in curr_round]
+            actual_curr= [team for team in self.standings[conf]]
             actual_next= []
             while len(actual_curr)+len(actual_next)>1: 
                 self.actuals += [(actual_curr[0], actual_curr[-1])]
-                actual_next += [actualWinningTeam(actual_curr[0], actual_curr[-1])]
+                actual_next += [actual_curr[0].actualWinningTeam(actual_curr[-1])]
                 actual_curr= actual_curr[1:-1]
                 if len(actual_curr)==0:
                     actual_curr= actual_next
@@ -120,7 +130,7 @@ class PlayoffTree:
             while len(curr_round)+len(next_round)>1: 
                 #best and worst teams face off
                 self.games += [(curr_round[0], curr_round[-1])]
-                winner= predictWinningTeam(curr_round[0], curr_round[-1],baseline)
+                winner= curr_round[0].predictWinningTeam(curr_round[-1],baseline)
                 winner.predicted_label += 1
                 #winner moves on to next round
                 next_round += [winner] 
@@ -136,5 +146,5 @@ class PlayoffTree:
         #add finals matchup to games list
         self.games += [(confs["east"], confs["west"])]
         #simulate final round
-        winner= predictWinningTeam(confs["east"], confs["west"],True)
+        winner= confs["east"].predictWinningTeam(confs["west"],True)
         winner.predicted_label += 1        
