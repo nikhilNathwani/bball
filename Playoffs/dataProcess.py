@@ -3,6 +3,7 @@ import time
 import csv
 import sys
 import numpy as np
+from model import *
 
 #fetches beautifulsoup-formatted data from given url
 def grabSiteData(url):
@@ -28,8 +29,10 @@ def listsToCSV(lists,fn):
 def transpose(lst):
 	return [list(attr) for attr in zip(*lst)]
 
-#returns dict with "train" and "test" lists of data
+#returns dict with "train" and "test" lists of Team data
+#test list has teams from year "year", train has teams from years < "year"
 def csvToTrainTest(csv, year):
+	global teamsByYear
     datafile = open(csv, 'r')
     train = []
     test= []
@@ -37,11 +40,11 @@ def csvToTrainTest(csv, year):
         stats= [elem for elem in row.strip().split(',')]
         url= stats[-2]
         team= Team(url, [float(elem) for elem in stats[:-2]], float(stats[-1]), sys.maxint)
-        team_yr= int(url[url.rfind('/')+1:url.rfind(".html")])
-        if team_yr==year:
+        if team.year==year:
             test.append(team)
-        if team_yr<year:
+        if team.year<year:
             train.append(team)
+        teamsByYear[team.year].append(team)
     return {"train":train, "test":test}
 
 #un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
@@ -65,6 +68,7 @@ def getPlayoffTeams(year):
     return teams_wins
 
 
+#id is id of table div in query soup
 def scrapeTeamStatsFromTable(id, query_soup, all_stats, per_game, lg_ranks):
     #get list of indices containing stats I care about
     div= query_soup.find('div', {"class" : "table_container", "id" : id})
@@ -200,3 +204,11 @@ def standardizeNorm(scale,name):
 	
 	#save scaling info (mins and diffs) to file 
 	listsToCSV([norms],'scales/norm/'+file_base+'_scales')
+
+
+if __name__=="__main__":
+	start=time.time()
+	for scale= ["rescale", "norm"]
+		for name in ['all_stats', 'per_game', 'league_ranks']:
+			standardizeNorm(scale,name)
+	print "Time taken:", time.time()-start
