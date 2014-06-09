@@ -17,7 +17,7 @@ class Team:
         self.sim= s
         self.score= 0
         self.winPct= -1
-        self.year= 0
+        self.year= int(url[url.rfind('/')+1:url.rfind(".html")])
 
     def teamName(self, t):
         s= t.url
