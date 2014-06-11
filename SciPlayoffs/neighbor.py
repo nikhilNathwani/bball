@@ -7,52 +7,35 @@ from model import *
 from dataProcess import *
 from sklearn import neighbors
 
-#returns an array of the form:
-#[[neighbor_1_label, similarity score], ..., [neighbor_k_label, similarity score]]
-def getNearestNeighbors(k, trainSet, testPoint):
-    return []
-
-def teamSort(teams):
-    return sorted(teams, key=lambda team: team.true_label)
-
 #weight is "uniform" or "distance", where distance weights 
 #votes according to inverse euclidean distance
-def kNN(k,weight="distance"):
-    clf = neighbors.KNeighborsClassifier(k, weights=weight)
+def kNNEngine(k,reg,weight="distance"):
+    #create classifier
+    clf= neighbors.KNeighborsRegressor(k,weight) if reg else neighbors.KNeighborsClassifier(k,weight)
     clf.fit(attrs["train"], targets["train"])
-    predictions= []
+
+    predictions= {}
+    #run kNN for each test point
     for index,attr in enumerate(attrs["test"]):
-        print "\n\nPredicting", urls["test"][index]
-        x= clf.kneighbors(list(attr))
+        print "\nPredicting", urls["test"][index]
+        x= clf.kneighbors(list(attr)) #returns array([distances list],[neighbor index list])
         [dists, neighs]= [x[0][0], x[1][0]]
+        #print results
         print "         Neighbor        Wins   Similarity"
         for i in range(len(neighs)):
             if i<=8:
                 print str(i+1)+". ", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
             else:
                 print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
-        predictions.append(float(clf.predict(attr)))
-        print "Predicted series wins:", predictions[-1]
+        predictions[urls["test"][index]]= float(clf.predict(attr)) #save prediction to predictions dict
+        print "Predicted series wins:", predictions[urls["test"][index]],"\n"
     return predictions
 
-#uses 1/similarity_score for weight, value of infinity if sim_score=0
-def regressionKNN(k,weight):
-    clf = neighbors.KNeighborsRegressor(k, weights=weight)
-    clf.fit(attrs["train"], targets["train"])
-    predictions= []
-    for index,attr in enumerate(attrs["test"]):
-        print "\n\nPredicting", urls["test"][index]
-        x= clf.kneighbors(list(attr))
-        [dists, neighs]= [x[0][0], x[1][0]]
-        print "         Neighbor        Wins   Similarity"
-        for i in range(len(neighs)):
-            if i<=8:
-                print str(i+1)+". ", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
-            else:
-                print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
-        predictions.append(float(clf.predict(attr)))
-        print "Predicted series wins:", predictions[-1]
-    return predictions
+def kNN(k,weight="distance"):
+    return kNNEngine(k,False,weight)
+
+def regressionKNN(k,weight="distance"):
+    return kNNEngine(k,True,weight)
 
 def numSeriesCorrect(teams):
     correct= 0
