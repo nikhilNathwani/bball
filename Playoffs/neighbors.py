@@ -36,10 +36,11 @@ def getNearestNeighbors(k, trainSet, testPoint):
     return kClosest
 
 def teamSort(teams):
-    return sorted(teams, key=lambda team: team.true_label)
+    return sorted(teams, key=lambda team: team.sim)
 
 #no weighting, just majority vote
 def kNN(k,trainSet,testPoint):
+    print "\n\nPredicting", testPoint.url
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
     kClosest= teamSort(kClosest)
     mode= kClosest[0].true_label #guaranteed to exist (so no array bounds issue)
@@ -47,7 +48,7 @@ def kNN(k,trainSet,testPoint):
     currMode= kClosest[0].true_label
     currModeFreq= 0
     for neighbor in kClosest:
-        #print neighbor.url, neighbor.true_label, neighbor.sim
+        print neighbor.url, neighbor.true_label, neighbor.sim
         if(neighbor.true_label == currMode):
             currModeFreq += 1
             if(currModeFreq > modeFreq):
@@ -61,15 +62,16 @@ def kNN(k,trainSet,testPoint):
 
 #uses 1/similarity_score for weight, value of infinity if sim_score=0
 def weightedKNN(k,trainSet,testPoint):
+    print "\n\nPredicting", testPoint.url
     kClosest= getNearestNeighbors(k, trainSet, testPoint)
     #sorting for printing purposes
-    kClosest= sorted(kClosest, key=lambda team: team.sim) 
+    kClosest= teamSort(kClosest)
     #majority vote, can be made more efficient
     weighted_total= 0 #guaranteed to exist (so no array bounds issue)
     sum_of_weights= 0
     for neighbor in kClosest:
         weight= (1/neighbor.sim if neighbor.sim!=0 else sys.maxint/20)
-        #print neighbor.url, neighbor.true_label, neighbor.sim
+        print neighbor.url, neighbor.true_label, neighbor.sim
         sum_of_weights += weight
         weighted_total += weight * neighbor.true_label
     testPoint.score= weighted_total/sum_of_weights
