@@ -14,7 +14,7 @@ def kNNEngine(k,reg,weight="distance"):
     clf= neighbors.KNeighborsRegressor(k,weight) if reg else neighbors.KNeighborsClassifier(k,weight)
     clf.fit(attrs["train"], targets["train"])
 
-    predictions= {}
+    predictions= []
     #run kNN for each test point
     for index,attr in enumerate(attrs["test"]):
         print "\nPredicting", urls["test"][index]
@@ -27,8 +27,8 @@ def kNNEngine(k,reg,weight="distance"):
                 print str(i+1)+". ", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
             else:
                 print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
-        predictions[urls["test"][index]]= float(clf.predict(attr)) #save prediction to predictions dict
-        print "Predicted series wins:", predictions[urls["test"][index]],"\n"
+        predictions.append(float(clf.predict(attr))) #save prediction to predictions dict
+        print "Predicted series wins:", predictions[-1],"\n"
     return predictions
 
 def kNN(k,weight="distance"):
@@ -47,15 +47,6 @@ def euclideanError(teams):
     trues= np.array([t.true_label for t in teams])
     predicts= np.array([t.predicted_label for t in teams])
     return np.linalg.norm(trues-predicts)
-
-def reportKNNResults(k, year):
-    data= csvToTrainTest("/Users/nikhilnathwani/Desktop/BBall/Playoffs/team_data/rescale/all_stats_rescale", year)
-    [train,test]= [data["train"], data["test"]]
-    for team in test:
-        print "\n-------------------------"
-        print k, "Closest neighbors of:", team.url
-        print weightedKNN(k, train, team)
-        print "-------------------------\n"
 
 def reportPlayoffAccuracy(k, year): 
     scales= ["norm"]#, "norm", "raw"]

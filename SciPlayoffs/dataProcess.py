@@ -5,6 +5,27 @@ import sys
 import numpy as np
 from model import *
 
+#returns dict with "train" and "test" lists of Team data
+#test list has teams from year "year", train has teams from years < "year"
+def csvToTrainTest(csv, year):
+    global teamsByYear
+    datafile = open(csv, 'r')
+    train = []
+    test= []
+    count= {"train":0,"test":0}
+    for row in datafile:
+        stats= [elem for elem in row.strip().split(',')]
+        attr= [float(elem) for elem in stats[:-2]]
+        yr= yearFromURL(stats[-2])
+        key= "test" if yr==year else "train"
+        attrs[key].append(attr) #append feature vector to attrs
+        urls[key].append(stats[-2])
+        targets[key].append(float(stats[-1]))
+        if key=="test": indexDict[stats[-2]]= count["test"]
+        teamsByYear[yr]= teamsByYear.get(yr,[]) + [count[key]]
+        count[key] += 1
+    return {"train":train, "test":test}
+
 #fetches beautifulsoup-formatted data from given url
 def grabSiteData(url):
     usock= urllib2.urlopen(url)
@@ -28,28 +49,6 @@ def listsToCSV(lists,fn):
 
 def transpose(lst):
 	return [list(attr) for attr in zip(*lst)]
-
-#returns dict with "train" and "test" lists of Team data
-#test list has teams from year "year", train has teams from years < "year"
-def csvToTrainTest(csv, year):
-    global teamsByYear
-    datafile = open(csv, 'r')
-    train = []
-    test= []
-    for row in datafile:
-        count= {"train":0,"test":0}
-        stats= [elem for elem in row.strip().split(',')]
-        attr= [float(elem) for elem in stats[:-2]]
-        yr= yearFromURL(stats[-2])
-
-
-        key= "test" if yr==year else "train"
-        attrs[key].append(attr) #append feature vector to attrs
-        urls[key].append(stats[-2])
-        targets[key].append(float(stats[-1]))
-        teamsByYear[yr]= teamsByYear.get(yr,[]) + []
-        count[key] += 1
-    return {"train":train, "test":test}
 
 #un-ignore wins_pyth and losses_pyth if lockout season stats are scaled properly
 statsToIgnore= ["player","g", "mp", "arena_name", "attendance", "wins_pyth", "losses_pyth"]
