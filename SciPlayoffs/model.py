@@ -1,5 +1,6 @@
 import re
 import string
+import math
 import time
 import csv
 import urllib2
@@ -50,9 +51,6 @@ def baselinePlayoffs(year):
 def kNNPlayoffs(knnScores,year):
     return playoffEngine(knnScores,year)[1]
 
-def actualPlayoffs(year):
-    return playoffEngine(targets["test"],year)[1]
-
 #scoreList used in getWinningTeam function
 def playoffEngine(scoreList,year):
     confs= {"east":0, "west":0} #value is winner of the conference
@@ -65,13 +63,11 @@ def playoffEngine(scoreList,year):
         for row in standings_file:
             teams += [str(row).strip()]
         standings[conf]= teams
-    print standings
 
     #set matchups list (list of pairs corresp to predicted playoff matchups)
     matchups= []
     for conf in confs:
         curr= [indexDict[team] for team in standings[conf]] #current round
-        print curr, indexDict
         next= [] #next round
         while len(curr)+len(next)>1: 
             #best and worst teams face off, winner moves on
@@ -91,3 +87,14 @@ def playoffEngine(scoreList,year):
     champ= getWinningTeam(confs["east"], confs["west"], scoreList)
     wins[champ] += 1
     return (matchups,wins)      
+
+def errorRaw(predictedWins):
+    p= np.array(predictedWins)
+    true= np.array(targets["test"]) 
+    diffs= [abs(true[i]-p[i]) for i in range(len(p))]
+    return sum(diffs)
+
+def errorEuclidean(predictedWins):
+    p= np.array(predictedWins)
+    true= np.array(targets["test"])
+    return np.linalg.norm(true-p)

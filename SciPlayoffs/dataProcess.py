@@ -8,23 +8,23 @@ from model import *
 #returns dict with "train" and "test" lists of Team data
 #test list has teams from year "year", train has teams from years < "year"
 def csvToTrainTest(csv, year):
-    global teamsByYear
+    global attrs,urls,targets,indexDict,teamsByYear
     datafile = open(csv, 'r')
-    train = []
-    test= []
     count= {"train":0,"test":0}
-    for row in datafile:
+    for i,row in enumerate(datafile):
         stats= [elem for elem in row.strip().split(',')]
         attr= [float(elem) for elem in stats[:-2]]
         yr= yearFromURL(stats[-2])
         key= "test" if yr==year else "train"
+        if count[key]==0:
+            attrs[key]= []
+            urls[key]= []
+            targets[key]= []
         attrs[key].append(attr) #append feature vector to attrs
         urls[key].append(stats[-2])
         targets[key].append(float(stats[-1]))
         if key=="test": indexDict[stats[-2]]= count["test"]
-        teamsByYear[yr]= teamsByYear.get(yr,[]) + [count[key]]
         count[key] += 1
-    return {"train":train, "test":test}
 
 #fetches beautifulsoup-formatted data from given url
 def grabSiteData(url):

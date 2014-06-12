@@ -12,23 +12,24 @@ from sklearn import neighbors
 def kNNEngine(k,reg,weight="distance"):
     #create classifier
     clf= neighbors.KNeighborsRegressor(k,weight) if reg else neighbors.KNeighborsClassifier(k,weight)
+    #print "knnEngine",attrs["train"], targets["train"]
     clf.fit(attrs["train"], targets["train"])
 
     predictions= []
     #run kNN for each test point
     for index,attr in enumerate(attrs["test"]):
-        print "\nPredicting", urls["test"][index]
+        '''print "\nPredicting", urls["test"][index]'''
         x= clf.kneighbors(list(attr)) #returns array([distances list],[neighbor index list])
         [dists, neighs]= [x[0][0], x[1][0]]
         #print results
-        print "         Neighbor        Wins   Similarity"
+        '''print "         Neighbor        Wins   Similarity"
         for i in range(len(neighs)):
             if i<=8:
                 print str(i+1)+". ", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
             else:
-                print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
+                print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]'''
         predictions.append(float(clf.predict(attr))) #save prediction to predictions dict
-        print "Predicted series wins:", predictions[-1],"\n"
+        '''print "Predicted series wins:", predictions[-1],"\n"'''
     return predictions
 
 def kNN(k,weight="distance"):
