@@ -23,7 +23,8 @@ def csvToTrainTest(csv, year):
         attrs[key].append(attr) #append feature vector to attrs
         urls[key].append(stats[-2])
         targets[key].append(float(stats[-1]))
-        if key=="test": indexDict[stats[-2]]= count["test"]
+        if key=="test": 
+            indexDict[stats[-2]]= count["test"]
         count[key] += 1
 
 #fetches beautifulsoup-formatted data from given url

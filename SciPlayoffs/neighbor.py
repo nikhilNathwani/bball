@@ -72,13 +72,28 @@ def reportPlayoffAccuracy(k, year):
     plot.ylabel( "Euclidean Error" )
     plot.show()
 
+def compareErrors(k,year):
+    data={'per_game':[],'all_stats':[],'league_ranks':[]}
+    scales= {'raw':[],'norm':[],'rescale':[]}
+    for d in data:
+        for scale in scales: 
+            csvToTrainTest('team_data/'+scale+'/'+d,year)
+            p=regressionKNN(k,"distance")
+            w= kNNPlayoffs(p,year)
+            print w, sum(w)
+            e= errorEuclidean(w)
+            data[d].append(e)
+            scales[scale].append(e)
+            print d, scale,'Error:', e
+            #r=errorRaw(w)    
+    for d in data:
+        x= data[d]
+        print d, "Average:",float(sum(x))/len(x)
+    for scale in scales:
+        x= scales[scale]
+        print scale, "Average",float(sum(x))/len(x)
 
-if __name__=="__main__":
+if __name__=='__main__':
     start= time.time()
-    if len(sys.argv)<=2:
-        raise Exception("Must provide k value and test year!")
-    k= int(sys.argv[1])
-    year= int(sys.argv[2])
-    reportPlayoffAccuracy(k, year)
-    #getWinPercentage("/teams/BOS/1984.html")
+    compareErrors(int(sys.argv[1]),int(sys.argv[2]))
     print "Time taken:", time.time()-start

@@ -74,7 +74,7 @@ def playoffEngine(scoreList,year):
             matchups += [(curr[0], curr[-1])]
             winner= getWinningTeam(curr[0], curr[-1], scoreList)
             wins[winner] += 1
-            next += [winner]
+            next += [getWinningTeam(curr[0],curr[-1],targets["test"])]
             #remove best and worst teams from current round
             curr= curr[1:-1]
             #if all teams have been removed from currend round, then next round begins
