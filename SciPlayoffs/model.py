@@ -21,6 +21,7 @@ attrs= {"train":[],"test":[],"other":[]}
 targets= {"train":[],"test":[],"other":[]}
 urls= {"train":[],"test":[],"other":[]}
 indexDict= {} #keys are testPoint urls, values are indices
+winPcts= {"train":[],"test":[],"other":[]}
 
 def yearFromURL(url):
     url= url
@@ -29,24 +30,31 @@ def yearFromURL(url):
 def teamName(url):
     return url[:url.rfind('/')][url[:url.rfind('/')].rfind('/')+1:]
 
-def getWinPercentages():
-    winPcts= [-1]*16
-    for url,index in indexDict.iteritems():
-        soup= grabSiteData("http://www.basketball-reference.com"+url)
-        recordPar= [p for p in soup.findAll('p') if "Record:" in p.text]
-        recordString= recordPar[0].text.encode("utf8","ignore")
-        record= recordString[recordString.find(" ")+1:recordString.find(",")]
-        wins,losses= [float(s) for s in record.split("-")]
-        winPcts[index]= wins/(wins+losses)
+def getWinPercentages(year):
+    global winPcts,winPctYear
+    if len(winPcts)==16 and winPctYear==year:
+        return winPcts
+    else:
+        winPctYear= year
+        winPcts= []
+        for index,url in enumerate(urls["test"]):
+            soup= grabSiteData("http://www.basketball-reference.com"+url)
+            recordPar= [p for p in soup.findAll('p') if "Record:" in p.text]
+            recordString= recordPar[0].text.encode("utf8","ignore")
+            record= recordString[recordString.find(" ")+1:recordString.find(",")]
+            wins,losses= [float(s) for s in record.split("-")]
+            winPcts.append(wins/(wins+losses))
+    print winPcts
     return winPcts
 
 #scoreList provides the means for comparison. Can be targets, winPcts, etc.
 #teamA and teamB are indices
 def getWinningTeam(teamA, teamB, scoreList):
+    print urls["test"][teamA],scoreList[teamA], urls["test"][teamB], scoreList[teamB]
     return teamA if scoreList[teamA]>scoreList[teamB] else teamB
 
 def baselinePlayoffs(year):
-    return playoffEngine(getWinPercentages,year)
+    return playoffEngine(getWinPercentages(year),year)
 
 def kNNPlayoffs(knnScores,year):
     return playoffEngine(knnScores,year)
@@ -76,6 +84,7 @@ def playoffEngine(scoreList,year):
             winner= getWinningTeam(curr[0], curr[-1], scoreList)
             wins[winner] += 1
             next += [getWinningTeam(curr[0],curr[-1],targets["test"])]
+            print urls["test"][curr[0]], urls["test"][curr[-1]], "basewinner:", urls["test"][getWinningTeam(curr[0], curr[-1], scoreList)], "truewinner:", urls["test"][getWinningTeam(curr[0],curr[-1],targets["test"])]
             if winner==next[-1]: 
                 num_series_correct+=1
             #remove best and worst teams from current round

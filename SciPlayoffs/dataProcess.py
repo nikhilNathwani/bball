@@ -13,9 +13,10 @@ statDicts= {"all_stats":allStatDict, "per_game":perGameDict, "league_ranks":leag
 
 #returns dict with "train" and "test" lists of Team data
 #test list has teams from year "year_rank", train has teams from years < "year"
-def csvToTrainTest(csv, year):
-    global attrs,urls,targets,indexDict,teamsByYear
+def csvToTrainTest(csv, winPctFN, year):
+    global attrs,urls,targets,indexDict,teamsByYear,winPcts
     datafile = open(csv, 'r')
+    winPctFile= open(winPctFN,'r')
     count= {"train":0,"test":0,"other":0}
     for i,row in enumerate(datafile):
         stats= [elem for elem in row.strip().split(',')]
@@ -37,7 +38,39 @@ def csvToTrainTest(csv, year):
         if key=="test": 
             indexDict[stats[-2]]= count["test"]
         count[key] += 1
+    for i,row in enumerate(winPctFile):
+        stats= [elem for elem in row.strip().split(',')]
+        yr= yearFromURL(stats[-1])
+        if year==yr:
+            key= "test"
+        elif yr<year:
+            key= "train"
+        else:
+            key= "other"
+        if count[key]==0:
+            winPcts[key]= []
+        winPcts[key].append(float(stats[0]))
+    print winPcts
 
+def getWinPct(team_url):
+    soup= grabSiteData("http://www.basketball-reference.com"+team_url)
+    recordPar= [p for p in soup.findAll('p') if "Record:" in p.text]
+    recordString= recordPar[0].text.encode("utf8","ignore")
+    record= recordString[recordString.find(" ")+1:recordString.find(",")]
+    wins,losses= [float(s) for s in record.split("-")]
+    return wins/(wins+losses)
+
+#input name of one of the training data files to get URLs in correct order
+def storeWinPcts(fn):
+    winPctRows= []
+    datafile = open(fn, 'r')
+    for i,row in enumerate(datafile):
+        print "Row:", i
+        stats= [elem for elem in row.strip().split(',')]
+        url= stats[-2]
+        winPctRows.append([getWinPct(url),url])
+    listsToCSV(winPctRows,'team_data/winPcts')
+ 
 #fetches beautifulsoup-formatted data from given url
 def grabSiteData(url):
     usock= urllib2.urlopen(url)
