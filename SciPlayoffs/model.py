@@ -17,9 +17,9 @@ def grabSiteData(url):
 
 teamsByYear= {}
 
-attrs= {"train":[],"test":[]}
-targets= {"train":[],"test":[]}
-urls= {"train":[],"test":[]}
+attrs= {"train":[],"test":[],"other":[]}
+targets= {"train":[],"test":[],"other":[]}
+urls= {"train":[],"test":[],"other":[]}
 indexDict= {} #keys are testPoint urls, values are indices
 
 def yearFromURL(url):
@@ -46,16 +46,17 @@ def getWinningTeam(teamA, teamB, scoreList):
     return teamA if scoreList[teamA]>scoreList[teamB] else teamB
 
 def baselinePlayoffs(year):
-    return playoffEngine(getWinPercentages,year)[1]
+    return playoffEngine(getWinPercentages,year)
 
 def kNNPlayoffs(knnScores,year):
-    return playoffEngine(knnScores,year)[1]
+    return playoffEngine(knnScores,year)
 
 #scoreList used in getWinningTeam function
 def playoffEngine(scoreList,year):
     confs= {"east":0, "west":0} #value is winner of the conference
     standings= {"east":[], "west":[]}
     wins= [0]*16
+    num_series_correct= 0
     #set standings based on team.urls in standings file
     for conf in confs:
         standings_file = open("standings/"+conf+"/"+str(year), 'r')
@@ -75,6 +76,8 @@ def playoffEngine(scoreList,year):
             winner= getWinningTeam(curr[0], curr[-1], scoreList)
             wins[winner] += 1
             next += [getWinningTeam(curr[0],curr[-1],targets["test"])]
+            if winner==next[-1]: 
+                num_series_correct+=1
             #remove best and worst teams from current round
             curr= curr[1:-1]
             #if all teams have been removed from currend round, then next round begins
@@ -86,7 +89,7 @@ def playoffEngine(scoreList,year):
     matchups += [(confs["east"], confs["west"])]
     champ= getWinningTeam(confs["east"], confs["west"], scoreList)
     wins[champ] += 1
-    return (matchups,wins)      
+    return (matchups,wins,num_series_correct)      
 
 def errorRaw(predictedWins):
     p= np.array(predictedWins)

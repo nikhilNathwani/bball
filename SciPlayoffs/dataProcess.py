@@ -10,12 +10,17 @@ from model import *
 def csvToTrainTest(csv, year):
     global attrs,urls,targets,indexDict,teamsByYear
     datafile = open(csv, 'r')
-    count= {"train":0,"test":0}
+    count= {"train":0,"test":0,"other":0}
     for i,row in enumerate(datafile):
         stats= [elem for elem in row.strip().split(',')]
         attr= [float(elem) for elem in stats[:-2]]
         yr= yearFromURL(stats[-2])
-        key= "test" if yr==year else "train"
+        if year==yr:
+            key= "test"
+        elif yr<year:
+            key= "train"
+        else:
+            key= "other"
         if count[key]==0:
             attrs[key]= []
             urls[key]= []
