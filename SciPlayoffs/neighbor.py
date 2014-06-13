@@ -18,18 +18,17 @@ def kNNEngine(k,reg,weight="distance"):
     predictions= []
     #run kNN for each test point
     for index,attr in enumerate(attrs["test"]):
-        '''print "\nPredicting", urls["test"][index]'''
+        print "\nPredicting", urls["test"][index]
         x= clf.kneighbors(list(attr)) #returns array([distances list],[neighbor index list])
         [dists, neighs]= [x[0][0], x[1][0]]
         #print results
-        '''print "         Neighbor        Wins   Similarity"
+        print "         Neighbor        Wins   Similarity"
         for i in range(len(neighs)):
             if i<=8:
-                print str(i+1)+". ", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]
+                print str(i+1)+". ", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i], xMostSimilarAttributes(5,index,neighs[i])
             else:
-                print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i]'''
+                print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i], xMostSimilarAttributes(5,index,neighs[i])
         predictions.append(float(clf.predict(attr))) #save prediction to predictions dict
-        '''print "Predicted series wins:", predictions[-1],"\n"'''
     return predictions
 
 def kNN(k,weight="distance"):
@@ -38,21 +37,21 @@ def kNN(k,weight="distance"):
 def regressionKNN(k,weight="distance"):
     return kNNEngine(k,True,weight)
 
-def numSeriesCorrect(teams):
-    correct= 0
-    for team in teams:
-        correct += min(team.true_label,team.predicted_label)    
-    return correct
+#test is the test team and train is the train team
+def xMostSimilarAttributes(x,test, train):
+    te= attrs["test"][test]
+    tr= attrs["train"][train]
+    diffs= [(abs(te[i]-tr[i]),i) for i in range(len(te))]
+    diffs.sort()
+    return [ind for (diff,ind) in diffs[:x]]
+
 
 def euclideanError(teams):
     trues= np.array([t.true_label for t in teams])
     predicts= np.array([t.predicted_label for t in teams])
     return np.linalg.norm(trues-predicts)
 
-def reportPlayoffAccuracy(k, year): 
-    scales= ["norm"]#, "norm", "raw"]
-    data_types= ["league_ranks","all_stats","per_game"]
-    results= {"league_ranks":[], "all_stats":[], "per_game":[]}
+def reportPlayoffAccuracy(year): 
     x= range(15,16)
     for j in range(15, 16):
         for scale in scales:
@@ -79,13 +78,12 @@ def compareErrors(k,year):
         for scale in scales: 
             csvToTrainTest('team_data/'+scale+'/'+d,year)
             p=regressionKNN(k,"distance")
-            w= kNNPlayoffs(p,year)
-            print w, sum(w)
-            e= errorEuclidean(w)
-            data[d].append(e)
-            scales[scale].append(e)
-            print d, scale,'Error:', e
-            #r=errorRaw(w)    
+            m,winList,numSeriesCorrect= kNNPlayoffs(p,year)
+            print winList, sum(winList)
+            data[d].append(numSeriesCorrect)
+            scales[scale].append(numSeriesCorrect)
+            print d, scale,'# series correct:', numSeriesCorrect
+            #r=errorRaw(winList)    
     for d in data:
         x= data[d]
         print d, "Average:",float(sum(x))/len(x)
