@@ -9,7 +9,8 @@ from sklearn import neighbors
 
 #weight is "uniform" or "distance", where distance weights 
 #votes according to inverse euclidean distance
-def kNNEngine(k,reg,weight="distance"):
+#data_type is all_stats, per_game, or league_ranks
+def kNNEngine(k,reg,data_type,weight="distance"):
     #create classifier
     clf= neighbors.KNeighborsRegressor(k,weight) if reg else neighbors.KNeighborsClassifier(k,weight)
     #print "knnEngine",attrs["train"], targets["train"]
@@ -25,25 +26,25 @@ def kNNEngine(k,reg,weight="distance"):
         print "         Neighbor        Wins   Similarity"
         for i in range(len(neighs)):
             if i<=8:
-                print str(i+1)+". ", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i], xMostSimilarAttributes(5,index,neighs[i])
+                print str(i+1)+". ", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i], xMostSimilarAttributes(5,index,neighs[i],data_type)
             else:
-                print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i], xMostSimilarAttributes(5,index,neighs[i])
+                print str(i+1)+".", urls["train"][neighs[i]], targets["train"][neighs[i]], dists[i], xMostSimilarAttributes(5,index,neighs[i],data_type)
         predictions.append(float(clf.predict(attr))) #save prediction to predictions dict
     return predictions
 
-def kNN(k,weight="distance"):
-    return kNNEngine(k,False,weight)
+def kNN(k,data_type,weight="distance"):
+    return kNNEngine(k,False,data_type,weight)
 
-def regressionKNN(k,weight="distance"):
-    return kNNEngine(k,True,weight)
+def regressionKNN(k,data_type,weight="distance"):
+    return kNNEngine(k,True,data_type,weight)
 
 #test is the test team and train is the train team
-def xMostSimilarAttributes(x,test, train):
+def xMostSimilarAttributes(x,test, train, data_type):
     te= attrs["test"][test]
     tr= attrs["train"][train]
     diffs= [(abs(te[i]-tr[i]),i) for i in range(len(te))]
     diffs.sort()
-    return [ind for (diff,ind) in diffs[:x]]
+    return [statDicts[data_type][ind] for (diff,ind) in diffs[:x]]
 
 
 def euclideanError(teams):
@@ -77,7 +78,7 @@ def compareErrors(k,year):
     for d in data:
         for scale in scales: 
             csvToTrainTest('team_data/'+scale+'/'+d,year)
-            p=regressionKNN(k,"distance")
+            p=regressionKNN(k,d,"distance")
             m,winList,numSeriesCorrect= kNNPlayoffs(p,year)
             print winList, sum(winList)
             data[d].append(numSeriesCorrect)
