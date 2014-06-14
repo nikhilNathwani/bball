@@ -79,34 +79,19 @@ def compareErrors(year):
     pred= []
     kRange= range(1,50)
     d="all_stats"
-    print "BASELINE"
+    #print "BASELINE"
     csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',year)
     #p=regressionKNN(k,d,"distance")
     m,winList,numSeriesCorrect= baselinePlayoffs(year)
     base=[numSeriesCorrect]*len(kRange)
     for k in kRange:
-        print "KNN"
         csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',year)
         p=regressionKNN(k,d,"distance")
         m,winList,numSeriesCorrect= kNNPlayoffs(p,year)
         pred.append(numSeriesCorrect)
-        #print winList, sum(winList)
-        #data[d].append(numSeriesCorrect)
-        #scales[scale].append(numSeriesCorrect)
-        #print d, scale,'# series correct:', numSeriesCorrect
-        #r=errorRaw(winList)    
-    '''for d in data:
-        x= data[d]
-        print d, "Average:",float(sum(x))/len(x)
-    for scale in scales:
-        x= scales[scale]
-        print scale, "Average",float(sum(x))/len(x)'''
-    print "BASE:", base
+  
     plot.plot(kRange,pred,'r-', label="Pred")
     plot.plot(kRange,base,'b-', label="Base")
-    '''plot.plot(kRange,data["league_ranks"],'r-', label="League Ranks")
-    plot.plot(kRange,data["all_stats"],'b-', label="All Stats")
-    plot.plot(kRange,data["per_game"],'g-', label="Per Game")'''
     #plot.axis( [0, 50, 0, 14])
     plot.xlabel( "k Value" )
     plot.ylabel( "Num Series Correct" )
