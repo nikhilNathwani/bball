@@ -73,31 +73,38 @@ def reportPlayoffAccuracy(year):
     plot.ylabel( "Euclidean Error" )
     plot.show()
 
-def compareErrors(year):
-    data={'per_game':[],'all_stats':[],'league_ranks':[]}
+def compareErrors(k,year):
     scale= 'rescale'
     pred= []
-    kRange= range(1,50)
     d="all_stats"
-    #print "BASELINE"
-    csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',year)
-    #p=regressionKNN(k,d,"distance")
-    m,winList,numSeriesCorrect= baselinePlayoffs(year)
-    base=[numSeriesCorrect]*len(kRange)
-    for k in kRange:
-        csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',year)
+    diffs= []
+    
+    for yr in range(year,2015):  
+        csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
+        m,winList,numSeriesCorrect= baselinePlayoffs(yr)
+        base=numSeriesCorrect
+        print "Year:", yr, "Base:", base
+
+        csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
         p=regressionKNN(k,d,"distance")
-        m,winList,numSeriesCorrect= kNNPlayoffs(p,year)
+        m,winList,numSeriesCorrect= kNNPlayoffs(p,yr)
         pred.append(numSeriesCorrect)
+        diffs.append(numSeriesCorrect-base)
+
+        #print "Year:",yr, "Baseline:", base, "Predicted:", numSeriesCorrect
+
+    print k,diffs, sum(diffs), float(sum(diffs))/len(diffs)
   
-    plot.plot(kRange,pred,'r-', label="Pred")
-    plot.plot(kRange,base,'b-', label="Base")
+    '''
+    plot.plot(range(year,2015),pred,'r-', label="Pred")
+    plot.plot(range(year,2015),base,'b-', label="Base")
     #plot.axis( [0, 50, 0, 14])
     plot.xlabel( "k Value" )
     plot.ylabel( "Num Series Correct" )
-    plot.show()
+    plot.show() '''
 
 if __name__=='__main__':
     start= time.time()
-    compareErrors(int(sys.argv[1]))
+    for k in range(1,50):
+        compareErrors(k,int(sys.argv[1]))
     print "Time taken:", time.time()-start
