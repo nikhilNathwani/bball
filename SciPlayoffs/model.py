@@ -36,7 +36,6 @@ def getWinPercentages():
 #scoreList provides the means for comparison. Can be targets, winPcts, etc.
 #teamA and teamB are indices
 def getWinningTeam(teamA, teamB, scoreList):
-    #print urls["test"][teamA],scoreList[teamA], urls["test"][teamB], scoreList[teamB]
     return teamA if scoreList[teamA]>scoreList[teamB] else teamB
 
 def baselinePlayoffs(year):

@@ -39,6 +39,7 @@ def csvToTrainTest(csv, winPctFN, year):
             indexDict[stats[-2]]= count["test"]
         count[key] += 1
 
+    count= {"train":0,"test":0,"other":0}
     #store contents of winPcts file    
     for i,row in enumerate(winPctFile):
         stats= [elem for elem in row.strip().split(',')]
@@ -52,6 +53,7 @@ def csvToTrainTest(csv, winPctFN, year):
         if count[key]==0:
             winPcts[key]= []
         winPcts[key].append(float(stats[0]))
+        count[key] += 1
 
 def getWinPct(team_url):
     soup= grabSiteData("http://www.basketball-reference.com"+team_url)
