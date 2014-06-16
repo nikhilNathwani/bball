@@ -6,6 +6,7 @@ import matplotlib.pyplot as plot
 from model import *
 from dataProcess import *
 from sklearn import neighbors
+from lasso import *
 
 #weight is "uniform" or "distance", where distance weights 
 #votes according to inverse euclidean distance
@@ -73,38 +74,48 @@ def reportPlayoffAccuracy(year):
     plot.ylabel( "Euclidean Error" )
     plot.show()
 
-def compareErrors(k,year):
-    scale= 'norm'
+def compareErrors(year):
+    scale= 'rescale'
     pred= []
-    d="per_game"
+    d="all_stats"
     diffs= []
-    
-    for yr in range(year,2015):  
-        csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
-        m,winList,numSeriesCorrect= baselinePlayoffs(yr)
-        base=numSeriesCorrect
-        #print "Year:", yr, "Base:", base
+    bestAttrsByYear= {}
+    for k in range(1,50):
+        for yr in range(year,2015): 
+            #remove attrs that aren't the best
+            if yr in bestAttrsByYear:
+                bestAttrs= bestAttrsByYear[yr]
+            else:
+                bestAttrs= getBestAttrs(d, scale, yr)
+                bestAttrsByYear[yr]= bestAttrs
+            thinDicts(bestAttrs)
 
-        csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
-        p=regressionKNN(k,d,"distance")
-        m,winList,numSeriesCorrect= kNNPlayoffs(p,yr)
-        pred.append(numSeriesCorrect)
-        diffs.append(numSeriesCorrect-base)
+            csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
+            m,winList,numSeriesCorrect= baselinePlayoffs(yr)
+            base=numSeriesCorrect
+            #print "Year:", yr, "Base:", base
 
-        #print "Year:",yr, "Baseline:", base, "Predicted:", numSeriesCorrect
+            csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
+            p=regressionKNN(k,d,"distance")
+            m,winList,numSeriesCorrect= kNNPlayoffs(p,yr)
+            pred.append(numSeriesCorrect)
+            diffs.append(numSeriesCorrect-base)
 
-    print k,diffs,pred, sum(diffs), float(sum(diffs))/len(diffs)
+            #print "Year:",yr, "Baseline:", base, "Predicted:", numSeriesCorrect
+
+        print k,diffs,pred, sum(diffs), float(sum(diffs))/len(diffs)
+        pred= []
+        diffs= []
   
-    '''
-    plot.plot(range(year,2015),pred,'r-', label="Pred")
-    plot.plot(range(year,2015),base,'b-', label="Base")
-    #plot.axis( [0, 50, 0, 14])
-    plot.xlabel( "k Value" )
-    plot.ylabel( "Num Series Correct" )
-    plot.show() '''
+        '''
+        plot.plot(range(year,2015),pred,'r-', label="Pred")
+        plot.plot(range(year,2015),base,'b-', label="Base")
+        #plot.axis( [0, 50, 0, 14])
+        plot.xlabel( "k Value" )
+        plot.ylabel( "Num Series Correct" )
+        plot.show() '''
 
 if __name__=='__main__':
     start= time.time()
-    for k in range(1,50):
-        compareErrors(k,int(sys.argv[1]))
+    compareErrors(int(sys.argv[1]))
     print "Time taken:", time.time()-start
