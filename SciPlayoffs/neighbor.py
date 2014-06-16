@@ -74,16 +74,16 @@ def reportPlayoffAccuracy(year):
     plot.show()
 
 def compareErrors(k,year):
-    scale= 'rescale'
+    scale= 'norm'
     pred= []
-    d="all_stats"
+    d="per_game"
     diffs= []
     
     for yr in range(year,2015):  
         csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
         m,winList,numSeriesCorrect= baselinePlayoffs(yr)
         base=numSeriesCorrect
-        print "Year:", yr, "Base:", base
+        #print "Year:", yr, "Base:", base
 
         csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
         p=regressionKNN(k,d,"distance")
@@ -93,7 +93,7 @@ def compareErrors(k,year):
 
         #print "Year:",yr, "Baseline:", base, "Predicted:", numSeriesCorrect
 
-    print k,diffs, sum(diffs), float(sum(diffs))/len(diffs)
+    print k,diffs,pred, sum(diffs), float(sum(diffs))/len(diffs)
   
     '''
     plot.plot(range(year,2015),pred,'r-', label="Pred")
