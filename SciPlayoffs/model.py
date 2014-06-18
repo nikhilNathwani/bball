@@ -81,7 +81,7 @@ def playoffEngine(scoreList,year):
             winner= getWinningTeam(curr[0], curr[-1], scoreList)
             wins[winner] += 1
             next += [getWinningTeam(curr[0],curr[-1],targets["test"])]
-            #if year==2008: print [urls["test"][x] for x in list(matchups[-1])],urls["test"][winner],"Correct:",winner==next[-1]
+            #print [urls["test"][x] for x in list(matchups[-1])],urls["test"][winner],"Correct:",winner==next[-1]
             #print urls["test"][curr[0]], urls["test"][curr[-1]], "basewinner:", urls["test"][getWinningTeam(curr[0], curr[-1], scoreList)], "truewinner:", urls["test"][getWinningTeam(curr[0],curr[-1],targets["test"])]
             if winner==next[-1]: 
                 num_series_correct+=1
@@ -96,6 +96,7 @@ def playoffEngine(scoreList,year):
     matchups += [(confs["east"], confs["west"])]
     champ= getWinningTeam(confs["east"], confs["west"], scoreList)
     wins[champ] += 1
+    #print [urls["test"][x] for x in list(matchups[-1])],urls["test"][champ],"Correct:",champ==getWinningTeam(confs["east"], confs["west"],targets["test"])
     return (matchups,wins,num_series_correct)      
 
 def errorRaw(predictedWins):
