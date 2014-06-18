@@ -12,9 +12,14 @@ def lasso(attrs,targets, a):
 			print elem, allStatDict[i]'''
 	return clf
 
-def getBestAttrs(data_type, scale,year):
-	alphas=[0.0001,0.0005,0.001,0.005,0.01,0.05,0.1,0.5]
+def lassoCV(attrs, targets):
+	clf = linear_model.LassoCV()
+	#print clf
+	clf.fit(attrs,targets)
+	#print "Best alpha:", clf.alpha_
+	return clf
 
+def getBestAttrs(data_type, scale,year):
 	if data_type=="all_stats":
 		attrDict= allStatDict
 	elif data_type=="per_game":
@@ -22,38 +27,30 @@ def getBestAttrs(data_type, scale,year):
 	else:
 		attrDict= leagueRankDict
 
-	diffs= {}
-	alphaAttrs= {}
-	alphaAttrNames= {}
-	
-	for a in alphas:
-		alphaAttrs[a]= []
-		alphaAttrNames[a]= []
+	bestAttrs= []
+	bestAttrNames= []
 
-		csvToTrainTest('team_data/'+scale+'/'+data_type,'team_data/winPcts',year)
-		m,winList,numSeriesCorrect= baselinePlayoffs(year)
-		base=numSeriesCorrect
+	csvToTrainTest('team_data/'+scale+'/'+data_type,'team_data/winPcts',year)
+	m,winList,numSeriesCorrect= baselinePlayoffs(year)
+	base=numSeriesCorrect
 
-		csvToTrainTest('team_data/'+scale+'/'+data_type,'team_data/winPcts',year)
-		clf= lasso(attrs["train"],targets["train"],a)
-		preds= []
-		for attr in attrs["test"]: 
-			#print urls["test"][j], targets["test"][j], clf.predict(attrs["test"][j])
-			preds.append(clf.predict(attr))
-		m,winList,numSeriesCorrect= playoffEngine(preds,year)
+	csvToTrainTest('team_data/'+scale+'/'+data_type,'team_data/winPcts',year)
+	clf= lassoCV(attrs["train"],targets["train"])
+	preds= []
+	for attr in attrs["test"]: 
+		#print urls["test"][j], targets["test"][j], clf.predict(attrs["test"][j])
+		preds.append(clf.predict(attr))
+	m,winList,numSeriesCorrect= playoffEngine(preds,year)
 
-		for i,elem in enumerate(clf.coef_):
-			if elem != 0:
-				alphaAttrs[a].append(i)
-				alphaAttrNames[a].append(attrDict[i])
+	for i,elem in enumerate(clf.coef_):
+		if elem != 0:
+			bestAttrs.append(i)
+			bestAttrNames.append(attrDict[i])
 
-		diffs[a]= numSeriesCorrect-base
+	diff= numSeriesCorrect-base
 
-	for a in alphas:
-		print a,len(alphaAttrs[a]), diffs[a]
-	bestAlpha= max(diffs.iterkeys(), key=(lambda key: diffs[key]))
-	print "Best alpha:", bestAlpha
-	return alphaAttrs[bestAlpha]
+	print "Best alpha:", clf.alpha_, numSeriesCorrect-base
+	return bestAttrs
 
 def getBestAlpha(data_type, scale, yearStart):
 	alphas=[0.0001,0.0005,0.001,0.005,0.01,0.05,0.1,0.5]
@@ -106,7 +103,9 @@ def getBestAlpha(data_type, scale, yearStart):
 
 
 if __name__=="__main__":
-	alphas=[0.0001,0.0005,0.001,0.005,0.01,0.05,0.1,0.5]
+	#alphas=[0.0001,0.0005,0.001,0.005,0.01,0.05,0.1,0.5]
 	data_type= 'league_ranks'
 	scale= 'rescale'
-	print getBestAttrs(data_type, scale, 2005)
+	csvToTrainTest('team_data/'+scale+'/'+data_type,'team_data/winPcts',int(sys.argv[1]))
+	lassoCV(attrs["train"],targets["train"])
+	print getBestAttrs(data_type, scale, int(sys.argv[1]))
