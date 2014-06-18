@@ -3,6 +3,7 @@ import math
 import numpy as np
 import time
 import matplotlib.pyplot as plot
+import json
 from model import *
 from dataProcess import *
 from sklearn import neighbors
@@ -33,6 +34,35 @@ def kNNEngine(k,reg,data_type,weight="distance"):
         predictions.append(float(clf.predict(attr))) #save prediction to predictions dict
     return predictions
 
+def neighborsToJSON(k,testInd,num_attrs,weight="distance"):
+    #create classifier
+    clf= neighbors.KNeighborsRegressor(k,weight)
+    clf.fit(attrs["train"], targets["train"])
+
+    #get neighbors of test point at index testInd
+    testAttr= attrs["test"][testInd]
+    x= clf.kneighbors(list(testAttr))
+    [dists, neighs]= [x[0][0], x[1][0]]
+
+    #construct list of json entries
+    jsonList= []
+    for i,n in enumerate(neighs):
+        d= dists[i]
+        url= urls["train"][n]
+        data= {}
+        data["name"]=teamName(url)
+        year= yearFromURL(url)
+        data["year"]= '\''+str(year-1)[-2:]+'-\''+str(year)[-2:]
+        data["wins"]= targets["train"][n]
+        data["dist"]= d
+        data["attrs"]= [elem[0] for elem in xMostSimilarAttributes(num_attrs,testInd,0)]
+        jsonList.append(data)
+    print json.dumps(jsonList, sort_keys=True, indent=4, separators=(',', ': '))
+    print urls["test"][testInd]
+    with open('../../datavis/data.json', 'w') as outfile:
+        json.dump(jsonList, outfile)
+
+
 def kNN(k,data_type,weight="distance"):
     return kNNEngine(k,False,data_type,weight)
 
@@ -40,7 +70,7 @@ def regressionKNN(k,data_type,weight="distance"):
     return kNNEngine(k,True,data_type,weight)
 
 #test is the test team and train is the train team
-def xMostSimilarAttributes(x,test, train, data_type):
+def xMostSimilarAttributes(x,test, train, data_type="all_stats"):
     te= attrs["test"][test]
     tr= attrs["train"][train]
     diffs= [(abs(te[i]-tr[i]),i) for i in range(len(te))]
@@ -117,5 +147,9 @@ def compareErrors(year):
 
 if __name__=='__main__':
     start= time.time()
-    compareErrors(int(sys.argv[1]))
+    scale= "rescale"
+    d= "all_stats"
+    yr= 2014
+    csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
+    neighborsToJSON(int(sys.argv[1]),int(sys.argv[2]),int(sys.argv[3]))
     print "Time taken:", time.time()-start
