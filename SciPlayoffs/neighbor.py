@@ -4,6 +4,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plot
 import json
+from random import shuffle
 from model import *
 from dataProcess import *
 from sklearn import neighbors
@@ -46,6 +47,7 @@ def neighborsToJSON(k,testInd,num_attrs,weight="distance"):
 
     #construct list of json entries
     jsonList= []
+    shuffle(neighs)
     for i,n in enumerate(neighs):
         d= dists[i]
         url= urls["train"][n]
