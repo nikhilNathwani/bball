@@ -35,37 +35,43 @@ def kNNEngine(k,reg,data_type,weight="distance"):
         predictions.append(float(clf.predict(attr))) #save prediction to predictions dict
     return predictions
 
-def neighborsToJSON(k,testInd,num_attrs,weight="distance"):
+def neighborsToJSON(k,num_attrs,weight="distance"):
     #create classifier
     clf= neighbors.KNeighborsRegressor(k,weight)
     clf.fit(attrs["train"], targets["train"])
 
-    #get neighbors of test point at index testInd
-    testAttr= attrs["test"][testInd]
-    x= clf.kneighbors(list(testAttr))
-    [dists, neighs]= [x[0][0], x[1][0]]
+    #construct dict of json neighbor lists for each team
+    testList= []
 
-    #construct list of json entries
-    jsonList= []
-    permuter= range(len(neighs))
-    shuffle(permuter)
-    neighs= [neighs[p] for p in permuter]
-    dists= [dists[p] for p in permuter]
-    for i,n in enumerate(neighs):
-        d= dists[i]
-        url= urls["train"][n]
-        data= {}
-        data["name"]=teamName(url)
-        year= yearFromURL(url)
-        data["year"]= '\''+str(year-1)[-2:]+'-\''+str(year)[-2:]
-        data["wins"]= targets["train"][n]
-        data["dist"]= d
-        data["attrs"]= [elem[0] for elem in xMostSimilarAttributes(num_attrs,testInd,0)]
-        jsonList.append(data)
-    print json.dumps(jsonList, sort_keys=True, indent=4, separators=(',', ': '))
-    print urls["test"][testInd]
+    for testInd in range(16):
+        #get neighbors of test point at index testInd
+        testAttr= attrs["test"][testInd]
+        x= clf.kneighbors(list(testAttr))
+        [dists, neighs]= [x[0][0], x[1][0]]
+
+        permuter= range(len(neighs))
+        shuffle(permuter)
+        neighs= [neighs[p] for p in permuter]
+        dists= [dists[p] for p in permuter]
+
+        neighList= []
+        for i,n in enumerate(neighs):
+            #populate neighbor data and add to neighList
+            d= dists[i]
+            url= urls["train"][n]
+            data= {}
+            data["name"]=teamName(url)
+            year= yearFromURL(url)
+            data["year"]= '\''+str(year-1)[-2:]+'-\''+str(year)[-2:]
+            data["wins"]= targets["train"][n]
+            data["dist"]= d
+            data["attrs"]= [elem[0] for elem in xMostSimilarAttributes(num_attrs,testInd,0)]
+            neighList.append(data)
+        #add neighList to testList
+        testList.append({"team":teamName(urls["test"][testInd]), "neighbors":neighList})
+    print json.dumps(testList, sort_keys=True, indent=4, separators=(',', ': '))
     with open('../../datavis/data.json', 'w') as outfile:
-        json.dump(jsonList, outfile)
+        json.dump(testList, outfile)
 
 
 def kNN(k,data_type,weight="distance"):
@@ -156,5 +162,5 @@ if __name__=='__main__':
     d= "all_stats"
     yr= 2014
     csvToTrainTest('team_data/'+scale+'/'+d,'team_data/winPcts',yr)
-    neighborsToJSON(int(sys.argv[1]),int(sys.argv[2]),int(sys.argv[3]))
+    neighborsToJSON(int(sys.argv[1]),int(sys.argv[2]))
     print "Time taken:", time.time()-start
