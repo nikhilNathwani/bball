@@ -47,7 +47,10 @@ def neighborsToJSON(k,testInd,num_attrs,weight="distance"):
 
     #construct list of json entries
     jsonList= []
-    shuffle(neighs)
+    permuter= range(len(neighs))
+    shuffle(permuter)
+    neighs= [neighs[p] for p in permuter]
+    dists= [dists[p] for p in permuter]
     for i,n in enumerate(neighs):
         d= dists[i]
         url= urls["train"][n]
