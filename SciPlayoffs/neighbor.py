@@ -41,7 +41,8 @@ def neighborsToJSON(k,num_attrs,weight="distance"):
     clf.fit(attrs["train"], targets["train"])
 
     #construct dict of json neighbor lists for each team
-    testList= []
+    order= {"IND":0,"MIA":1,"TOR":2,"CHI":3,"WAS":4,"BRK":5,"CHA":6,"ATL":7,"SAS":8,"OKC":9,"LAC":10,"HOU":11,"POR":12,"GSW":13,"MEM":14,"DAL":15}
+    testList= [0]*16
 
     for testInd in range(16):
         #get neighbors of test point at index testInd
@@ -68,7 +69,8 @@ def neighborsToJSON(k,num_attrs,weight="distance"):
             data["attrs"]= [elem[0] for elem in xMostSimilarAttributes(num_attrs,testInd,0)]
             neighList.append(data)
         #add neighList to testList
-        testList.append({"team":teamName(urls["test"][testInd]), "neighbors":neighList})
+        tn=teamName(urls["test"][testInd])
+        testList[order[tn]]= {"team":tn, "neighbors":neighList}
     print json.dumps(testList, sort_keys=True, indent=4, separators=(',', ': '))
     with open('../../datavis/data.json', 'w') as outfile:
         json.dump(testList, outfile)
