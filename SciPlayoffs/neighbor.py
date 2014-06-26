@@ -64,9 +64,10 @@ def neighborsToJSON(k,num_attrs,weight="distance"):
             data["name"]=teamName(url)
             year= yearFromURL(url)
             data["year"]= '\''+str(year-1)[-2:]+'-\''+str(year)[-2:]
+            data["url"]= url
             data["wins"]= targets["train"][n]
             data["dist"]= d
-            data["attrs"]= [elem[0] for elem in xMostSimilarAttributes(num_attrs,testInd,0)]
+            data["attrs"]= [elem[0] for elem in xMostSimilarAttributes(num_attrs,testInd,n)]
             neighList.append(data)
         #add neighList to testList
         tn=teamName(urls["test"][testInd])
